@@ -8,7 +8,6 @@
     <p class="lede">This console turns the LAN printer configuration runbook into a guided, checkable, copy\u2011paste\u2011safe setup flow: direct connection, switch with no router, and full router-based deployments.</p>
     <div class="hero-actions">
       <button class="btn btn-primary" data-goto="wizard">Start the setup wizard \u2192</button>
-      <button class="btn btn-ghost" data-goto="network">Browse network setup</button>
     </div>
   </div>
 

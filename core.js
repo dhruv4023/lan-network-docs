@@ -22,6 +22,7 @@
   state.checklists = state.checklists || {};
   state.theme = state.theme || "dark";
   state.wizard = state.wizard || { topology: null, dhcp: null, count: null, step: 0 };
+  state.routeTabs = state.routeTabs || { network: "single" };
 
   /* ===================== THEME ===================== */
   function applyTheme() {

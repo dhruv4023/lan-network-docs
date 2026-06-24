@@ -16,8 +16,27 @@
   /* ===================== ROUTING ===================== */
   const routes = Array.from(document.querySelectorAll(".route"));
   const navItems = Array.from(document.querySelectorAll(".nav-item"));
+  const networkRoute = document.getElementById("route-network");
 
-  function goTo(routeName) {
+  function setNetworkTab(tabName) {
+    if (!networkRoute) return;
+    var tabs = Array.from(networkRoute.querySelectorAll(".tab"));
+    var panels = Array.from(networkRoute.querySelectorAll("[data-tabpanel]"));
+    var nextTab = tabs.some(function (tab) { return tab.dataset.tab === tabName; }) ? tabName : "single";
+
+    tabs.forEach(function (tab) {
+      tab.classList.toggle("is-active", tab.dataset.tab === nextTab);
+    });
+    panels.forEach(function (panel) {
+      panel.classList.toggle("is-active", panel.dataset.tabpanel === nextTab);
+    });
+
+    state.routeTabs = state.routeTabs || {};
+    state.routeTabs.network = nextTab;
+    saveState(state);
+  }
+
+  function goTo(routeName, tabName) {
     routes.forEach(function (r) {
       r.hidden = r.dataset.route !== routeName;
     });
@@ -32,6 +51,9 @@
     if (location.hash !== "#" + routeName) {
       history.replaceState(null, "", "#" + routeName);
     }
+    if (routeName === "network") {
+      setNetworkTab(tabName || (state.routeTabs && state.routeTabs.network) || "single");
+    }
     if (routeName === "summary") renderSummaryProgress();
   }
 
@@ -41,7 +63,9 @@
 
   document.addEventListener("click", function (e) {
     var el = e.target.closest("[data-goto]");
-    if (el) goTo(el.dataset.goto);
+    if (!el) return;
+    var tabName = el.dataset.tab || el.dataset.topo || null;
+    goTo(el.dataset.goto, el.dataset.goto === "network" ? tabName : null);
   });
 
   var initialRoute = (location.hash || "#home").slice(1);
@@ -52,13 +76,7 @@
     var tabs = Array.from(group.querySelectorAll(".tab"));
     tabs.forEach(function (tab) {
       tab.addEventListener("click", function () {
-        tabs.forEach(function (t) { t.classList.remove("is-active"); });
-        tab.classList.add("is-active");
-        document.querySelectorAll("[data-tabpanel]").forEach(function (panel) {
-          if (panel.closest(".route").contains(group)) {
-            panel.classList.toggle("is-active", panel.dataset.tabpanel === tab.dataset.tab);
-          }
-        });
+        setNetworkTab(tab.dataset.tab);
       });
     });
   });
@@ -113,17 +131,12 @@
       btn.innerHTML = (idx > 30 ? "\u2026" : "") + before + "<mark>" + match + "</mark>" + after + "\u2026" +
         '<span class="res-route">in ' + escapeHtml(m.routeTitle) + "</span>";
       btn.addEventListener("click", function () {
-        goTo(m.routeName);
+        var targetPanel = m.el.closest(".tab-panel");
+        goTo(m.routeName, targetPanel ? targetPanel.dataset.tabpanel : null);
         searchResults.hidden = true;
         searchInput.value = "";
         setTimeout(function () {
           if (m.el.tagName === "SUMMARY") m.el.parentElement.open = true;
-          var target = m.el.closest(".tab-panel");
-          if (target && !target.classList.contains("is-active")) {
-            var tabName = target.dataset.tabpanel;
-            var tabBtn = document.querySelector('.tab[data-tab="' + tabName + '"]');
-            if (tabBtn) tabBtn.click();
-          }
           m.el.scrollIntoView({ behavior: "smooth", block: "center" });
           m.el.style.outline = "2px solid var(--accent)";
           setTimeout(function () { m.el.style.outline = ""; }, 1600);
@@ -293,7 +306,7 @@
           "<li>Browse to that IP. If it won't load, set your laptop's adapter to IP 192.168.192.169 / 255.255.255.0 / gateway 192.168.192.1 / DNS 8.8.8.8.</li>" +
           '<li>In ePOS Proxy, click <strong>+ Add Network Printer</strong>, enter the IP, click <strong>Add</strong>.</li>' +
         "</ol>" +
-        '<button class="btn btn-ghost" data-goto="network">Open full Network Setup guide \u2192</button>';
+        '<button class="btn btn-ghost" data-goto="network" data-topo="single">Open full Network Setup guide \u2192</button>';
     } else if (topo === "multi") {
       html =
         '<div class="callout callout-warn">Configure every printer one at a time before wiring them all to the switch \u2014 they likely share a default IP.</div>' +
@@ -303,7 +316,7 @@
           "<li>Wire the laptop and all configured printers into the switch, then power everything on.</li>" +
           '<li>Add each printer\'s IP in ePOS Proxy via <strong>+ Add Network Printer</strong>.</li>' +
         "</ol>" +
-        '<button class="btn btn-ghost" data-goto="network">Open full Network Setup guide \u2192</button>';
+        '<button class="btn btn-ghost" data-goto="network" data-topo="multi">Open full Network Setup guide \u2192</button>';
     } else if (topo === "router") {
       var dhcp = state.wizard.dhcp;
       html =
