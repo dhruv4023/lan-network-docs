@@ -114,7 +114,11 @@ a{ color:var(--accent); }
   border-radius:8px; width:38px; height:38px; font-size:1.1rem; cursor:pointer;
 }
 
-.main{ padding:1.6rem 2.2rem 4rem; max-width:1080px; }
+.main{
+  padding:1.6rem 2.2rem 4rem;
+  width:min(100%, 1080px);
+  margin:0 auto;
+}
 
 .topbar{ margin-bottom:1.6rem; }
 .search-wrap{ position:relative; max-width:520px; }
@@ -152,17 +156,55 @@ a{ color:var(--accent); }
 .btn-ghost:hover{ border-color:var(--accent); color:var(--accent); }
 
 .card-grid{
-  display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin:2rem 0;
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));
+  gap:1rem;
+  margin:2rem 0;
+  align-items:stretch;
 }
 .topo-card{
   background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
-  padding:1.1rem; cursor:pointer; transition:border-color .15s, transform .15s;
+  padding:1.1rem; cursor:pointer; transition:border-color .15s, transform .15s, box-shadow .15s;
+  color:inherit; font:inherit; text-align:left;
+  display:flex; flex-direction:column; align-items:flex-start; gap:.85rem;
+  min-height:100%;
+  min-width:0;
+  overflow:hidden;
 }
-.topo-card:hover{ border-color:var(--accent); transform:translateY(-2px); }
+.topo-card:hover{ border-color:var(--accent); transform:translateY(-2px); box-shadow:var(--shadow); }
+.topo-card:focus-visible{ outline:2px solid var(--accent); outline-offset:3px; }
 .topo-card h3{ margin-top:0; font-size:1rem; }
-.topo-card p{ color:var(--muted); font-size:.85rem; margin-bottom:0; }
+.topo-card .diagram{
+  width:100%;
+  margin:.1rem 0 0;
+  flex-wrap:nowrap;
+  align-items:center;
+  justify-content:flex-start;
+  min-height:5.8rem;
+}
+.topo-card .diagram-switch{
+  gap:.35rem;
+}
+.topo-card .diagram-switch .fanout,
+.topo-card .diagram-switch .node-stack{
+  flex:0 0 auto;
+}
+.topo-card .diagram-switch .fanout{ min-width:18px; }
+.topo-card .diagram-switch .node-stack{ min-width:48px; }
+.topo-card .diagram-switch .node{ white-space:nowrap; }
+.topo-card .diagram .link{
+  min-width:24px;
+}
+.topo-card .diagram .node{
+  padding:.42rem .55rem;
+}
+.topo-card .diagram .node.small{
+  padding:.26rem .45rem;
+  font-size:.72rem;
+}
+.topo-card p{ color:var(--muted); font-size:.85rem; margin:0; }
 
-.overview-grid{ display:grid; grid-template-columns:1.2fr 1fr; gap:1rem; }
+.overview-grid{ display:grid; grid-template-columns:1.2fr 1fr; gap:1rem; align-items:start; }
 @media (max-width: 880px){ .overview-grid{ grid-template-columns:1fr; } .card-grid{ grid-template-columns:1fr; } }
 
 .panel{

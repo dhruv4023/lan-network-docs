@@ -68,6 +68,15 @@
     goTo(el.dataset.goto, el.dataset.goto === "network" ? tabName : null);
   });
 
+  document.addEventListener("keydown", function (e) {
+    var el = e.target.closest("[data-goto][role='button']");
+    if (!el) return;
+    if (e.key !== "Enter" && e.key !== " ") return;
+    e.preventDefault();
+    var tabName = el.dataset.tab || el.dataset.topo || null;
+    goTo(el.dataset.goto, el.dataset.goto === "network" ? tabName : null);
+  });
+
   var initialRoute = (location.hash || "#home").slice(1);
   goTo(routes.some(function (r) { return r.dataset.route === initialRoute; }) ? initialRoute : "home");
 

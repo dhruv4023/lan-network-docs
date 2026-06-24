@@ -12,7 +12,7 @@
   </div>
 
   <div class="card-grid">
-    <article class="topo-card" data-goto="network" data-topo="single">
+    <article class="topo-card" data-goto="network" data-topo="single" role="button" tabindex="0" aria-label="Open network setup for a single printer">
       <h3>\u2460 Single printer, no router</h3>
       <div class="diagram diagram-single" aria-hidden="true">
         <div class="node node-laptop">\uD83D\uDCBB Laptop</div>
@@ -22,7 +22,7 @@
       <p>One printer wired straight into your laptop with an Ethernet cable. Fastest path for a single till.</p>
     </article>
 
-    <article class="topo-card" data-goto="network" data-topo="multi">
+    <article class="topo-card" data-goto="network" data-topo="multi" role="button" tabindex="0" aria-label="Open network setup for multiple printers with a switch">
       <h3>\u2461 Multiple printers, switch only</h3>
       <div class="diagram diagram-switch" aria-hidden="true">
         <div class="node node-laptop">\uD83D\uDCBB Laptop</div>
@@ -42,7 +42,7 @@
       <p>No router on site \u2014 laptop and printers share a fixed-IP subnet through a gigabit switch.</p>
     </article>
 
-    <article class="topo-card" data-goto="router" data-topo="router">
+    <article class="topo-card" data-goto="router" data-topo="router" role="button" tabindex="0" aria-label="Open router-based network setup">
       <h3>\u2462 Router-based network</h3>
       <div class="diagram diagram-router" aria-hidden="true">
         <div class="node node-laptop">\uD83D\uDCBB Laptop</div>
