@@ -72,7 +72,8 @@
       n.classList.toggle("is-active", n.dataset.route === routeName);
     });
     sidebar.classList.remove("is-open");
-    window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
+    sidebarToggle.setAttribute("aria-expanded", "false");
+    window.scrollTo(0, 0);
     if (location.hash !== "#" + routeName) {
       history.replaceState(null, "", "#" + routeName);
     }
@@ -82,8 +83,9 @@
   navItems.forEach((btn) => {
     btn.addEventListener("click", () => goTo(btn.dataset.route));
   });
-  document.querySelectorAll("[data-goto]").forEach((el) => {
-    el.addEventListener("click", () => goTo(el.dataset.goto));
+  document.addEventListener("click", (e) => {
+    const el = e.target.closest("[data-goto]");
+    if (el) goTo(el.dataset.goto);
   });
 
   const initialRoute = (location.hash || "#home").slice(1);
@@ -91,7 +93,6 @@
 
   /* ===================== TABS ===================== */
   document.querySelectorAll(".tabs").forEach((group) => {
-    const groupName = group.dataset.tabgroup;
     const tabs = Array.from(group.querySelectorAll(".tab"));
     tabs.forEach((tab) => {
       tab.addEventListener("click", () => {
@@ -295,6 +296,7 @@
   const wizardSteps = [
     {
       id: "topology",
+      field: "topology",
       title: "What does your network look like?",
       render: () => optionGrid("topology", [
         { value: "single", title: "Single printer, direct", desc: "One printer wired straight to the laptop." },
@@ -304,6 +306,7 @@
     },
     {
       id: "count",
+      field: "count",
       title: "How many printers are you setting up?",
       skip: () => state.wizard.topology === "single",
       render: () => optionGrid("count", [
@@ -313,6 +316,7 @@
     },
     {
       id: "dhcp",
+      field: "dhcp",
       title: "Does your router support DHCP reservations?",
       skip: () => state.wizard.topology !== "router",
       render: () => optionGrid("dhcp", [
@@ -338,6 +342,10 @@
       card.innerHTML = `<strong>${opt.title}</strong><span>${opt.desc}</span>`;
       card.addEventListener("click", () => {
         state.wizard[field] = opt.value;
+        if (field === "topology") {
+          state.wizard.count = null;
+          state.wizard.dhcp = null;
+        }
         saveState(state);
         renderWizardStep();
       });
@@ -434,6 +442,7 @@
       renderWizardStep();
       return;
     }
+    if (step.field && !state.wizard[step.field]) return;
     state.wizard.step = Math.min(steps.length - 1, state.wizard.step + 1);
     renderWizardStep();
   });
