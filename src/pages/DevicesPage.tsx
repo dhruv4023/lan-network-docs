@@ -26,7 +26,11 @@ function uid(): string {
 
 function DeviceCard({ d, onEdit, onRemove, onToggle }: { d: Device; onEdit: () => void; onRemove: () => void; onToggle: () => void }) {
   const devices = useStore(s => s.devices)
+  const reservations = useStore(s => s.reservations)
+  const addReservation = useStore(s => s.addReservation)
+  const assignNextIp = useStore(s => s.assignNextIp)
   const conflict = devices.some(x => x.id !== d.id && x.ip === d.ip)
+  const hasReservation = reservations.some(r => r.mac === d.mac)
 
   return (
     <motion.div
@@ -60,6 +64,14 @@ function DeviceCard({ d, onEdit, onRemove, onToggle }: { d: Device; onEdit: () =
               <span className={`status-dot ${d.online ? 'online' : 'offline'} mr-1 align-middle`} />
               {d.online ? 'Online' : 'Offline'}
             </button>
+            {hasReservation ? (
+              <span className="text-[10px] px-2 py-1 rounded-lg border border-accent/30 text-accent">Reserved</span>
+            ) : d.ip ? (
+              <button onClick={() => addReservation({ mac: d.mac, ip: d.ip, hostname: d.name })}
+                className="text-[10px] px-2 py-1 rounded-lg border border-line/60 text-muted cursor-pointer hover:border-accent hover:text-accent transition-colors">
+                Reserve
+              </button>
+            ) : null}
             <button onClick={onEdit} className="text-[10px] px-2 py-1 rounded-lg border border-line/60 text-muted cursor-pointer hover:border-accent hover:text-accent transition-colors">
               Edit
             </button>

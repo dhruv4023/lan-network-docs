@@ -9,6 +9,7 @@ import DhcpPage from './pages/DhcpPage'
 import TopologyPage from './pages/TopologyPage'
 import IpCalcPage from './pages/IpCalcPage'
 import LogsPage from './pages/LogsPage'
+import DocsPage from './pages/DocsPage'
 
 const PAGES: Record<string, { component: React.FC; label: string }> = {
   dashboard: { component: Dashboard, label: 'Dashboard' },
@@ -18,6 +19,7 @@ const PAGES: Record<string, { component: React.FC; label: string }> = {
   topology: { component: TopologyPage, label: 'Topology' },
   ipcalc: { component: IpCalcPage, label: 'IP Calc' },
   logs: { component: LogsPage, label: 'Logs' },
+  docs: { component: DocsPage, label: 'Session Guide' },
 }
 
 export default function App() {
