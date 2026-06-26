@@ -3,115 +3,117 @@
 ## Component Tree
 
 ```
-<App>                          ← state owner, router, saveState
-├── <Sidebar>                  ← nav buttons, theme toggle, print
-├── <Topbar>                   ← search input + results overlay
-└── {route === 'home'    && <Home>}
-    {route === 'wizard'   && <Wizard>}
-    {route === 'network'  && <NetworkSetup>}
-    {route === 'router'   && <RouterConfig>}
-    {route === 'printer'  && <PrinterConfig>}
-    {route === 'troubleshooting' && <Troubleshooting>}
-    {route === 'faq'      && <FAQ>}
-    {route === 'summary'  && <Summary>}
+<App>                        ← reads activePage from Zustand
+├── <Sidebar>                ← nav buttons → setPage(), theme toggle
+└── <main>
+    ├── {activePage === 'dashboard' && <Dashboard>}
+    ├── {activePage === 'router'   && <RouterPage>}
+    ├── {activePage === 'devices'  && <DevicesPage>}
+    ├── {activePage === 'dhcp'     && <DhcpPage>}
+    ├── {activePage === 'topology' && <TopologyPage>}
+    ├── {activePage === 'ipcalc'   && <IpCalcPage>}
+    └── {activePage === 'logs'     && <LogsPage>}
 ```
 
 ## Data Flow
 
 ```
-App (state owner)
- │
- ├── saveState(updater)    ← mutates state + localStorage
- ├── state                 ← read-only snapshot
- ├── navigate(to, tab?)    ← sets route, updates hash
- └── toggleTheme()         ← flips dark/light
-      │
-      ▼
- Children receive props as needed (state, saveState, navigate)
- Components that don't mutate state (Troubleshooting, FAQ) receive no props
+┌─────────────────────────────────────────────────────┐
+│                  Zustand Store                       │
+│  (single store, all state + actions)                 │
+│                                                       │
+│  state ← persistState() → localStorage               │
+│  state ← loadState() ← localStorage                  │
+│                                                       │
+│  Actions: setTheme, setPage, updateRouter, addDevice, │
+│  removeDevice, addReservation, releaseLease,          │
+│  applyScenario, resetNetwork, simulateAction, ...     │
+└────────────────────────┬────────────────────────────┘
+                         │
+                    useStore(selector)
+                         │
+            ┌────────────┼────────────┐
+            ▼            ▼            ▼
+        <Dashboard>  <RouterPage>  <DevicesPage>  ...
 ```
 
-## State Shape (localStorage key: `netprint-console-state-v1`)
+## State Shape (localStorage keys)
 
-```js
-{
-  checklists: {
-    overview: [true, false, true, ...],   // boolean[] per checklist
-    verify:   [false, true, ...],
-  },
-  theme: "dark" | "light",
-  wizard: {
-    topology: "single" | "multi" | "router" | null,
-    count: "2-3" | "4+" | null,
-    dhcp: "yes" | "no" | null,
-    step: 0,                               // current step index
-  },
-  routeTabs: {
-    network: "single" | "multi",           // active tab on Network page
-  }
+```
+networkSimulator.router.v1       →  RouterConfig
+networkSimulator.devices.v1      →  Device[]
+networkSimulator.reservations.v1 →  DhcpReservation[]
+networkSimulator.leases.v1       →  DhcpLease[]
+networkSimulator.topology.v1     →  TopologyNode[]
+networkSimulator.logs.v1         →  LogEntry[]
+networkSimulator.settings.v1     →  { theme, sidebarOpen, activePage }
+```
+
+## Store Action Pattern
+
+Every mutating action follows this pattern:
+
+```
+actionName(args) {
+  const s = get()
+  // compute new state
+  const next = { ...s, modifiedField: newValue }
+  persistState(next)
+  return next
 }
 ```
 
-## Route Handling
+## Page Switching
 
 ```
-hashchange → App reads location.hash → sets route state
-navigate('x') →
-  setRoute('x')
-  history.replaceState(null, '', '#x')
-  window.scrollTo(0, 0)
-
-Initial load: useEffect reads location.hash, sets initial route
-Fallback to 'home' if hash is empty or invalid
+sidebar button onClick → setPage('dashboard')
+  → Zustand updates settings.activePage
+  → App re-renders, renders matching page component
+  → No URL changes, no history, no router
 ```
 
-## Search
+## DHCP Algorithm (dhcp.ts)
 
 ```
-Topbar builds searchIndex (via ref from App)
-  ↓
-User types → filter index by substring match → show top 8 results
-  ↓
-Click result:
-  navigate to matching route (with tab if applicable)
-  scroll to matching element
-  flash accent outline on element
+findNextAvailableIp(rangeStart, rangeEnd, devices, reservations, excludeIps)
+  1. Convert range start/end to numbers
+  2. Collect all used IPs (devices + reservations + excludeIps)
+  3. Scan range start..end for first unused IP
+  4. Return IP or null if pool exhausted
 ```
 
-## Color System
+## Subnet Calculation (ip.ts)
 
-- Dark theme: default in `@theme {}` block
-- Light theme: `[data-theme="light"]` overrides same CSS vars
-- No `@media (prefers-color-scheme)` — user choice saved in localStorage
-- All colors use theme tokens; no hardcoded hex in JSX
+```
+calcIp(ip, mask) → {
+  networkAddress: ip & mask             (bitwise AND)
+  broadcastAddress: ip | ~mask          (bitwise OR with inverted mask)
+  cidr: count 1-bits in mask
+  firstHost: networkAddress + 1
+  lastHost: broadcastAddress - 1
+  totalHosts: 2^(32 - cidr)
+  usableHosts: totalHosts - 2
+  binary*: dotted binary representation
+}
+```
+
+## Export/Import
+
+```
+storage.ts:
+  exportConfig() → loadState() → JSON.stringify → download blob
+  importConfig(json) → JSON.parse → validate shape → persistState()
+```
 
 ## Layout
 
+Desktop (>980px):
 ```
-Desktop ( >980px ):
 ┌──────────┬────────────────────────────┐
 │ Sidebar  │  Main                      │
-│ 268px    │  max-width: 1080px         │
-│          │  padding: 1.6rem 2.2rem    │
-│ sticky   │  margin: 0 auto            │
+│ 268px    │  max-width: 1200px         │
+│ sticky   │  padding: 1.5rem 1.5rem   │
 └──────────┴────────────────────────────┘
-
-Mobile ( <980px ):
-Sidebar slides in from left (transform: translateX)
-Hamburger button fixed top-left
-Main padded for mobile (4rem top for button clearance)
 ```
 
-## Build Flow
-
-```
-npm run build
-  → Vite reads src/index.html (root)
-  → Resolves imports from src/
-  → Tailwind scans JSX for class names
-  → Output to dist/
-    dist/index.html        ← base: './' (relative paths)
-    dist/assets/*.js
-    dist/assets/*.css
-  → GitHub Actions deploys dist/ to Pages
-```
+Mobile (<980px): Sidebar slides in from left; hamburger button fixed top-left.

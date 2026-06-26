@@ -1,45 +1,43 @@
 # Coding Rules & Conventions
 
 ## General
-- Do NOT add comments to code unless explaining a non-obvious workaround
-- Keep functions small; extract repeated JSX into local variables or small helper components
-- Prefer `useCallback`/`useMemo` only when passing deps to child components that memoize
+- No comments in component logic
+- One component per file, PascalCase export
+- Imports from `../store` for Zustand selectors (never direct import of store)
+- No barrel exports — import directly from file path
 
-## React
-- Use function components with destructured props
-- No prop-types (no runtime type checking)
-- No class components, no legacy lifecycle methods
-- No fragment (`<>`) wrapper unless you need to return multiple adjacent elements
+## React + TypeScript
+- Function components with destructured props — no `React.FC`
+- No prop-types (use TypeScript interfaces from `../types`)
+- No class components, no legacy lifecycle
+- Conditional rendering: `{condition && <X />}` or ternary
 - Event handlers: `onClick={fn}`, never `onClick={() => fn()}`
-- Conditional rendering: `{condition && <Component />}` or ternary, never `display:none` in JSX
-- State initializer: pass function to `useState(() => ...)` for expensive computation
+- Hooks only: `useState`, `useEffect`, `useCallback`, `useRef`
+
+## Zustand Store
+- Store in `src/store/index.ts` using `create<State & Actions>()`
+- Selectors in components: `useStore(s => s.someValue)`
+- Actions must: mutate state → `persistState(next)` → return `next`
+- Every mutating action should add a `log()` entry automatically
+- Never call `persistState` outside store actions
+
+## State Management Pattern
+1. Component dispatches store action
+2. Store action computes new state
+3. Store calls `persistState(next)` to save to localStorage
+4. Store appends log entry
+5. Store returns new state → all subscribers re-render
 
 ## Tailwind CSS
-- Use theme tokens: `bg-panel`, `text-accent`, `border-line`, etc. — never raw hex in JSX
-- Arbitrary values (`w-[123px]`) only when no theme token fits
-- Responsive: use `max-[980px]:` prefix for mobile overrides
-- Dark/light: all theming is handled by `data-theme` attribute; no `dark:` variants needed
-- Utility classes over custom CSS — only use `@layer components` in `index.css` for patterns repeated across 3+ components
-
-## State & Props
-- Single `state` object in App.jsx, persisted to localStorage key `netprint-console-state-v1`
-- Pass state + saveState as props to children that mutate state
-- Children that only read state receive it directly (e.g. `state={state}`)
-- IP table rows use local `useState` in NetworkSetup.jsx and RouterConfig.jsx
-
-## Clipboard
-- `data-copy="text"` attribute on any element makes it copy-to-clipboard on click
-- Built into a global document click handler in App-side logic
+- Theme tokens only: `bg-panel`, `text-accent`, `border-line` — no raw hex in JSX
+- Arbitrary values (`w-[123px]`) only when no token exists
+- Responsive: `max-[980px]:` prefix for mobile
+- Dark/light handled by `data-theme` CSS vars — no `dark:` variants
 
 ## Routing
-- `App.jsx` holds `route` state; renders one component at a time via `{route === 'x' && <X />}`
-- Navigation: `navigate('routeName', 'optionalTabName')`
-- Avoid adding new routing dependencies
-
-## Files
-- One component per file
-- Component file name matches export (PascalCase)
-- No barrel exports (`index.js`) — import directly from component file
+- No routing library — pages switched via `settings.activePage` in Zustand
+- Sidebar buttons call `setPage('pageId')`
+- `App.tsx` renders `pages[activePage] || <Dashboard />`
 
 ## No tests
-- This project has no test framework or test files. Do not write tests.
+- This project has no test framework. Do not write tests.
