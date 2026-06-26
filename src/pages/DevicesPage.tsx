@@ -81,6 +81,7 @@ export default function DevicesPage() {
   const toggleDeviceStatus = useStore(s => s.toggleDeviceStatus)
   const router = useStore(s => s.router)
   const assignNextIp = useStore(s => s.assignNextIp)
+  const assignDhcpIpAndUpdate = useStore(s => s.assignDhcpIpAndUpdate)
   const addLog = useStore(s => s.addLog)
 
   const [showModal, setShowModal] = useState(false)
@@ -136,7 +137,7 @@ export default function DevicesPage() {
   function handleSave() {
     if (!validate()) return
     const ip = form.ipMode === 'dhcp'
-      ? assignNextIp(editing || 'new') || ''
+      ? form.ip || assignDhcpIpAndUpdate(editing || 'new') || ''
       : form.ip || ''
 
     const device: Device = {
@@ -279,7 +280,12 @@ export default function DevicesPage() {
                       value={form.ipMode}
                       onChange={e => {
                         const mode = e.target.value as 'dhcp' | 'static'
-                        setForm(f => ({ ...f, ipMode: mode, ip: mode === 'dhcp' ? '' : f.ip }))
+                        if (mode === 'dhcp') {
+                          const ip = assignDhcpIpAndUpdate(editing || 'new') || ''
+                          setForm(f => ({ ...f, ipMode: mode, ip }))
+                        } else {
+                          setForm(f => ({ ...f, ipMode: mode }))
+                        }
                       }}
                     >
                       <option value="dhcp">DHCP (Auto)</option>

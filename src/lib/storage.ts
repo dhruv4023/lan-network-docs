@@ -25,6 +25,7 @@ export function persistState(state: NetworkState): void {
   persist('reservations', state.reservations)
   persist('leases', state.leases)
   persist('topology', state.topology)
+  persist('cables', state.cables)
   persist('logs', state.logs)
   persist('settings', state.settings)
 }
@@ -39,14 +40,14 @@ export function loadState(): NetworkState | null {
     const logs = load('logs', null)
     const settings = load('settings', null)
     if (!router || !devices || !settings) return null
-    return { router, devices, reservations, leases, topology, logs, settings } as NetworkState
+    return { router, devices, reservations: reservations || [], leases: leases || [], topology: topology || [], cables: [], packets: [], logs: logs || [], settings } as unknown as NetworkState
   } catch {
     return null
   }
 }
 
 export function clearAll(): void {
-  const keys = ['router', 'devices', 'reservations', 'leases', 'topology', 'logs', 'settings']
+  const keys = ['router', 'devices', 'reservations', 'leases', 'topology', 'cables', 'logs', 'settings']
   keys.forEach(k => {
     try { localStorage.removeItem(`${STORAGE_PREFIX}${k}.${SCHEMA_VERSION}`) } catch {}
   })

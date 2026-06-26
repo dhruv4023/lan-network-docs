@@ -6,6 +6,7 @@ import { getDefaultState, generateMac } from '../data/scenarios'
 import type {
   NetworkState, RouterConfig, Device, DhcpReservation,
   DhcpLease, LogEntry, TopologyNode, DeviceStatus,
+  CableMeta, PacketAnim, ConnectionType, CableStatus,
 } from '../types'
 
 function uid(): string {
@@ -25,6 +26,8 @@ const initialState: NetworkState = saved || {
   reservations: [],
   leases: [],
   topology: defaults.topology as TopologyNode[],
+  cables: [],
+  packets: [],
   logs: [{
     id: uid(),
     timestamp: new Date().toISOString(),
@@ -52,9 +55,20 @@ export const useStore = create<NetworkState & {
   applyScenario: (scenarioId: string) => void
   addLease: (hostname: string, mac: string, ip: string) => void
   assignNextIp: (deviceId: string) => string | null
+  assignDhcpIp: (deviceId: string) => string | null
+  assignDhcpIpAndUpdate: (deviceId: string) => string | null
   updateTopology: (nodes: TopologyNode[]) => void
   connectDevices: (fromId: string, toId: string) => void
+  disconnectCable: (fromId: string, toId: string) => void
   simulateAction: (action: string, deviceId?: string) => void
+  autoConfigure: (deviceId: string) => void
+  duplicateDevice: (deviceId: string) => void
+  addCable: (c: Omit<CableMeta, 'id'>) => void
+  removeCable: (id: string) => void
+  updateCable: (id: string, upd: Partial<CableMeta>) => void
+  addPacketAnim: (sourceNodeId: string, targetNodeId: string, label: string) => void
+  clearPackets: () => void
+  pingDevice: (fromId: string, toId: string) => void
 }>()((set, get) => ({
   ...initialState,
 
@@ -104,10 +118,12 @@ export const useStore = create<NetworkState & {
       ...n,
       connections: n.connections.filter(c => c !== id),
     }))
+    const cables = s.cables.filter(c => c.sourceNodeId !== id && c.targetNodeId !== id)
     const next = {
       ...s,
       devices,
       topology,
+      cables,
       logs: [...s.logs, log(s, `Device "${d?.name || id}" removed`, 'warn')],
     }
     persistState(next)
@@ -125,7 +141,7 @@ export const useStore = create<NetworkState & {
     const devices = s.devices.map(d => {
       if (d.id !== id) return d
       const online = !d.online
-      return { ...d, status: online ? 'online' as DeviceStatus : 'offline' as DeviceStatus, online }
+      return { ...d, status: online ? 'online' as DeviceStatus : 'offline' as DeviceStatus, online, lastSeen: online ? new Date().toISOString() : d.lastSeen }
     })
     const d = devices.find(x => x.id === id)
     const next = {
@@ -207,6 +223,8 @@ export const useStore = create<NetworkState & {
       ...def as unknown as NetworkState,
       reservations: [],
       leases: [],
+      cables: [],
+      packets: [],
       logs: [{
         id: uid(), timestamp: new Date().toISOString(),
         message: 'Network reset to default configuration.',
@@ -225,6 +243,8 @@ export const useStore = create<NetworkState & {
         ip, gateway: '192.168.1.1', subnet: '255.255.255.0',
         status: online ? 'online' : 'offline', online,
         firmware: type === 'printer' ? `v2.1.${Math.floor(Math.random() * 5)}` : undefined,
+        manufacturer: type === 'printer' ? 'NetPrint' : type === 'switch' ? 'NetSwitch' : 'Generic',
+        model: type === 'printer' ? `NP-${100 + Math.floor(Math.random() * 900)}` : undefined,
       }
     }
 
@@ -259,9 +279,7 @@ export const useStore = create<NetworkState & {
       }
       case 'out-of-range':
         router = { ...router, lanIp: '192.168.1.1', subnetMask: '255.255.255.0', dhcpRangeStart: '192.168.1.100', dhcpRangeEnd: '192.168.1.200' }
-        devices = [
-          makeDev('Printer-1', 'printer', '192.168.192.168'),
-        ]
+        devices = [makeDev('Printer-1', 'printer', '192.168.192.168')]
         logs.push(log(s, '⚠ Printer-1 has IP 192.168.192.168 — outside router subnet 192.168.1.x', 'error'))
         break
       case 'duplicate-ip':
@@ -288,7 +306,8 @@ export const useStore = create<NetworkState & {
 
     const next: NetworkState = {
       ...s, router, devices, reservations, logs,
-      leases: [], settings: { ...s.settings, activePage: 'dashboard' },
+      leases: [], cables: [], packets: [],
+      settings: { ...s.settings, activePage: 'dashboard' },
       topology: devices.map((d, i) => ({
         id: uid(), deviceId: d.id, x: 100 + (i % 5) * 180, y: 200 + Math.floor(i / 5) * 120, connections: [],
       })),
@@ -304,7 +323,37 @@ export const useStore = create<NetworkState & {
     const net = ip.networkAddress(s.router.lanIp, s.router.subnetMask)
     const bcast = ip.broadcastAddress(s.router.lanIp, s.router.subnetMask)
     const exclude = [s.router.lanIp, s.router.gateway, net, bcast]
-    const nextIp = findNextAvailableIp(s.router.dhcpRangeStart, s.router.dhcpRangeEnd, s.devices, s.reservations, exclude)
+    return findNextAvailableIp(s.router.dhcpRangeStart, s.router.dhcpRangeEnd, s.devices, s.reservations, exclude)
+  },
+
+  assignDhcpIp: (deviceId) => {
+    const s = get()
+    const dev = s.devices.find(d => d.id === deviceId)
+    if (!dev) return null
+    if (!s.router.dhcpEnabled) return null
+    const nextIp = s.assignNextIp(deviceId)
+    if (!nextIp) return null
+    return nextIp
+  },
+
+  assignDhcpIpAndUpdate: (deviceId) => {
+    const s = get()
+    const nextIp = s.assignDhcpIp(deviceId)
+    if (!nextIp) return null
+
+    const devices = s.devices.map(d =>
+      d.id === deviceId ? { ...d, ip: nextIp, ipMode: 'dhcp' as const, status: 'online' as DeviceStatus, online: true, lastSeen: new Date().toISOString() } : d
+    )
+    const dev = devices.find(d => d.id === deviceId)
+
+    s.addLease(dev?.name || 'Unknown', dev?.mac || '', nextIp)
+    const next = {
+      ...s,
+      devices,
+      logs: [...s.logs, log(s, `DHCP: ${dev?.name || 'Device'} assigned ${nextIp}`, 'success')],
+    }
+    persistState(next)
+    set(next)
     return nextIp
   },
 
@@ -315,6 +364,14 @@ export const useStore = create<NetworkState & {
   }),
 
   connectDevices: (fromId, toId) => set(s => {
+    if (fromId === toId) return s
+    const cableKey = [fromId, toId].sort().join('-')
+    const exists = s.cables.some(c => {
+      const cKey = [c.sourceNodeId, c.targetNodeId].sort().join('-')
+      return cKey === cableKey
+    })
+    if (exists) return s
+
     const topology = s.topology.map(n => {
       if (n.id === fromId && !n.connections.includes(toId)) {
         return { ...n, connections: [...n.connections, toId] }
@@ -324,10 +381,187 @@ export const useStore = create<NetworkState & {
       }
       return n
     })
-    const next = { ...s, topology }
+
+    const cable: CableMeta = {
+      id: uid(), sourceNodeId: fromId, targetNodeId: toId,
+      type: 'ethernet', speed: 1000, status: 'connected',
+    }
+
+    const next = { ...s, topology, cables: [...s.cables, cable],
+      logs: [...s.logs, log(s, `Cable connected between nodes`, 'success')],
+    }
     persistState(next)
     return next
   }),
+
+  disconnectCable: (fromId, toId) => set(s => {
+    const cables = s.cables.filter(c =>
+      !(c.sourceNodeId === fromId && c.targetNodeId === toId) &&
+      !(c.sourceNodeId === toId && c.targetNodeId === fromId)
+    )
+    const topology = s.topology.map(n => {
+      if (n.id === fromId) return { ...n, connections: n.connections.filter(c => c !== toId) }
+      if (n.id === toId) return { ...n, connections: n.connections.filter(c => c !== fromId) }
+      return n
+    })
+    const next = { ...s, cables, topology, logs: [...s.logs, log(s, `Cable disconnected`, 'warn')] }
+    persistState(next)
+    return next
+  }),
+
+  addCable: (c) => set(s => {
+    const cable: CableMeta = { ...c, id: uid() }
+    const next = { ...s, cables: [...s.cables, cable] }
+    persistState(next)
+    return next
+  }),
+
+  removeCable: (id) => set(s => {
+    const cables = s.cables.filter(c => c.id !== id)
+    const next = { ...s, cables }
+    persistState(next)
+    return next
+  }),
+
+  updateCable: (id, upd) => set(s => {
+    const cables = s.cables.map(c => c.id === id ? { ...c, ...upd } : c)
+    const next = { ...s, cables }
+    persistState(next)
+    return next
+  }),
+
+  addPacketAnim: (sourceNodeId, targetNodeId, label) => set(s => {
+    const packet: PacketAnim = {
+      id: uid(), sourceNodeId, targetNodeId,
+      label, progress: 0, timestamp: Date.now(),
+    }
+    const packets = [...s.packets, packet].slice(-20)
+    const next = { ...s, packets }
+    persistState(next)
+    setTimeout(() => {
+      const st = get()
+      const updated = st.packets.filter(p => p.id !== packet.id)
+      persistState({ ...st, packets: updated })
+      set({ packets: updated })
+    }, 2000)
+    return next
+  }),
+
+  clearPackets: () => set(s => {
+    const next = { ...s, packets: [] }
+    persistState(next)
+    return next
+  }),
+
+  pingDevice: (fromId, toId) => {
+    const s = get()
+    const fromDev = s.devices.find(d => d.id === fromId)
+    const toDev = s.devices.find(d => d.id === toId)
+    if (!fromDev || !toDev) return
+
+    const fromNode = s.topology.find(n => n.deviceId === fromId)
+    const toNode = s.topology.find(n => n.deviceId === toId)
+    if (!fromNode || !toNode) return
+
+    s.addPacketAnim(fromNode.id, toNode.id, 'PING')
+    setTimeout(() => {
+      s.addPacketAnim(toNode.id, fromNode.id, 'PONG')
+      const connected = fromNode.connections.includes(toNode.id) || toNode.connections.includes(fromNode.id)
+      s.addLog(
+        connected ? `Ping from ${fromDev.name} to ${toDev.name}: ${Math.floor(Math.random() * 5 + 1)}ms` : `Ping from ${fromDev.name} to ${toDev.name}: Destination unreachable`,
+        connected ? 'success' : 'error',
+      )
+    }, 500)
+  },
+
+  autoConfigure: (deviceId) => {
+    const s = get()
+    const dev = s.devices.find(d => d.id === deviceId)
+    if (!dev) return
+
+    const updates: Partial<Device> = {
+      lastSeen: new Date().toISOString(),
+      online: true,
+      status: 'online' as DeviceStatus,
+    }
+
+    if (!dev.name || dev.name.startsWith('New ')) {
+      const typeLabels: Record<string, string> = { printer: 'Printer', laptop: 'Laptop', desktop: 'Desktop', switch: 'Switch', 'access-point': 'AP' }
+      const existing = s.devices.filter(d => d.type === dev.type).length
+      updates.name = `${typeLabels[dev.type] || 'Device'}-${existing + 1}`
+    }
+
+    if (!dev.mac || dev.mac === '00:00:00:00:00:00') {
+      updates.mac = generateMac()
+    }
+
+    if (!dev.subnet) updates.subnet = s.router.subnetMask
+    if (!dev.gateway) updates.gateway = s.router.gateway
+
+    if (!dev.manufacturer) {
+      const mfgs: Record<string, string> = { printer: 'NetPrint', laptop: 'TechBook', desktop: 'DeskPro', switch: 'NetSwitch', router: 'NetRouter', 'access-point': 'AirWave' }
+      updates.manufacturer = mfgs[dev.type] || 'Generic'
+    }
+
+    if (!dev.model) {
+      updates.model = `${dev.type.charAt(0).toUpperCase() + dev.type.slice(1)}-${100 + Math.floor(Math.random() * 900)}`
+    }
+
+    if (!dev.firmware && dev.type === 'printer') {
+      updates.firmware = `v2.1.${Math.floor(Math.random() * 5)}`
+    }
+
+    if (dev.ipMode === 'dhcp' && (!dev.ip || dev.ip === '0.0.0.0')) {
+      const nextIp = s.assignDhcpIp(deviceId)
+      if (nextIp) {
+        updates.ip = nextIp
+        s.addLease(updates.name || dev.name, updates.mac || dev.mac, nextIp)
+      }
+    }
+
+    if (dev.connectionType === 'ethernet' && !dev.connectionSpeed) {
+      updates.connectionSpeed = [100, 1000, 10000][Math.floor(Math.random() * 3)]
+    }
+
+    const devices = s.devices.map(d => d.id === deviceId ? { ...d, ...updates } : d)
+    const next = { ...s, devices, logs: [...s.logs, log(s, `${updates.name || dev.name} configured successfully.`, 'success')] }
+    persistState(next)
+    set(next)
+  },
+
+  duplicateDevice: (deviceId) => {
+    const s = get()
+    const dev = s.devices.find(d => d.id === deviceId)
+    if (!dev) return
+
+    const newId = uid()
+    const newNodeId = uid()
+    const newDev: Device = {
+      ...dev, id: newId,
+      name: `${dev.name}-copy`,
+      mac: generateMac(),
+      ip: '',
+      ipMode: 'dhcp',
+      online: true,
+      status: 'online',
+    }
+
+    const topoNode: TopologyNode = {
+      id: newNodeId, deviceId: newId,
+      x: (s.topology.find(n => n.deviceId === deviceId)?.x || 300) + 60,
+      y: (s.topology.find(n => n.deviceId === deviceId)?.y || 300) + 60,
+      connections: [],
+    }
+
+    const next = {
+      ...s,
+      devices: [...s.devices, newDev],
+      topology: [...s.topology, topoNode],
+      logs: [...s.logs, log(s, `Device "${dev.name}" duplicated as "${newDev.name}"`, 'info')],
+    }
+    persistState(next)
+    set(next)
+  },
 
   simulateAction: (action, deviceId) => {
     const s = get()
@@ -359,14 +593,10 @@ export const useStore = create<NetworkState & {
       case 'restart-router':
         msg = 'Router restarting...'
         sev = 'warn'
-        const router = { ...s.router }
-        const next = {
+        set(s => ({
           ...s,
-          router,
           logs: [...s.logs, log(s, 'Router restarted', 'success')],
-        }
-        persistState(next)
-        set(next)
+        }))
         return
       case 'restart-printer':
         msg = dev ? `Printer ${dev.name} restarting...` : 'Printer restarting...'

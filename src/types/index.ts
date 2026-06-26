@@ -1,8 +1,9 @@
 export type DeviceType = 'printer' | 'laptop' | 'desktop' | 'router' | 'switch' | 'access-point'
 export type ConnectionType = 'ethernet' | 'wifi'
 export type IpMode = 'dhcp' | 'static'
-export type DeviceStatus = 'online' | 'offline'
+export type DeviceStatus = 'online' | 'offline' | 'booting'
 export type LogSeverity = 'info' | 'warn' | 'error' | 'success'
+export type CableStatus = 'connected' | 'disconnected' | 'broken'
 
 export interface RouterConfig {
   name: string
@@ -14,6 +15,12 @@ export interface RouterConfig {
   dhcpRangeStart: string
   dhcpRangeEnd: string
   leaseTime: number
+}
+
+export interface DevicePort {
+  id: string
+  label: string
+  type: 'wan' | 'lan' | 'wifi' | 'usb'
 }
 
 export interface Device {
@@ -28,6 +35,10 @@ export interface Device {
   subnet: string
   status: DeviceStatus
   firmware?: string
+  manufacturer?: string
+  model?: string
+  connectionSpeed?: number
+  lastSeen?: string
   online: boolean
   parentId?: string
 }
@@ -56,6 +67,24 @@ export interface TopologyNode {
   x: number
   y: number
   connections: string[]
+}
+
+export interface CableMeta {
+  id: string
+  sourceNodeId: string
+  targetNodeId: string
+  type: ConnectionType
+  speed: number
+  status: CableStatus
+}
+
+export interface PacketAnim {
+  id: string
+  sourceNodeId: string
+  targetNodeId: string
+  label: string
+  progress: number
+  timestamp: number
 }
 
 export interface LogEntry {
@@ -91,6 +120,8 @@ export interface NetworkState {
   reservations: DhcpReservation[]
   leases: DhcpLease[]
   topology: TopologyNode[]
+  cables: CableMeta[]
+  packets: PacketAnim[]
   logs: LogEntry[]
   settings: {
     theme: 'dark' | 'light'
