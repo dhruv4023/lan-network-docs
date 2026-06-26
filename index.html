@@ -1,75 +1,13 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NetPrint Console — LAN Printer Setup Guide</title>
-<link rel="stylesheet" href="styles.css">
-</head>
-<body>
-
-<a class="skip-link" href="#main">Skip to content</a>
-
-<div class="app">
-
-  <aside class="sidebar" id="sidebar">
-    <div class="brand">
-      <span class="brand-mark" aria-hidden="true">
-        <svg viewBox="0 0 32 32" width="28" height="28">
-          <circle cx="16" cy="6" r="3" fill="currentColor"/>
-          <circle cx="6" cy="26" r="3" fill="currentColor"/>
-          <circle cx="26" cy="26" r="3" fill="currentColor"/>
-          <path d="M16 9 L16 18 M16 18 L6 23 M16 18 L26 23" stroke="currentColor" stroke-width="2" fill="none"/>
-        </svg>
-      </span>
-      <div>
-        <p class="brand-name">NetPrint Console</p>
-        <p class="brand-sub">LAN printer provisioning guide</p>
-      </div>
-    </div>
-
-    <nav class="nav" aria-label="Primary">
-      <button class="nav-item is-active" data-route="home"><span class="nav-dot"></span>Overview</button>
-      <button class="nav-item" data-route="wizard"><span class="nav-dot"></span>Setup Wizard</button>
-      <button class="nav-item" data-route="network"><span class="nav-dot"></span>Without Router</button>
-      <button class="nav-item" data-route="router"><span class="nav-dot"></span>Router Configuration</button>
-      <button class="nav-item" data-route="printer"><span class="nav-dot"></span>Printer Configuration</button>
-      <button class="nav-item" data-route="troubleshooting"><span class="nav-dot"></span>Troubleshooting</button>
-      <button class="nav-item" data-route="faq"><span class="nav-dot"></span>FAQ</button>
-      <button class="nav-item" data-route="summary"><span class="nav-dot"></span>Config Summary</button>
-    </nav>
-
-    <div class="sidebar-foot">
-      <button id="themeToggle" class="ghost-btn" type="button" aria-pressed="false">
-        <span id="themeIcon" aria-hidden="true">🌙</span> <span id="themeLabel">Dark mode</span>
-      </button>
-      <button id="printBtn" class="ghost-btn" type="button">🖨 Print this page</button>
-    </div>
-  </aside>
-
-  <button id="sidebarToggle" class="sidebar-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
-
-  <main id="main" class="main">
-    <header class="topbar">
-      <div class="search-wrap">
-        <input type="search" id="searchInput" placeholder="Search the guide — e.g. “DHCP”, “self-test”, “gateway”…" aria-label="Search guide content">
-        <div id="searchResults" class="search-results" hidden></div>
-      </div>
-    </header>
-
-    <div id="routeContainer"></div>
-  </main>
-</div>
-
-<script src="core.js"></script>
-<script src="routes/home.js"></script>
-<script src="routes/wizard.js"></script>
-<script src="routes/network.js"></script>
-<script src="routes/router.js"></script>
-<script src="routes/printer.js"></script>
-<script src="routes/troubleshooting.js"></script>
-<script src="routes/faq.js"></script>
-<script src="routes/summary.js"></script>
-<script src="app.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NetPrint Console — LAN Printer Setup Guide</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='6' r='3' fill='%2354e0c2'/><circle cx='6' cy='26' r='3' fill='%2354e0c2'/><circle cx='26' cy='26' r='3' fill='%2354e0c2'/><path d='M16 9 L16 18 M16 18 L6 23 M16 18 L26 23' stroke='%2354e0c2' stroke-width='2' fill='none'/></svg>">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>
