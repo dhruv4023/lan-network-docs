@@ -7,6 +7,11 @@ export const SCENARIOS: DemoScenario[] = [
   { id: 'out-of-range', name: 'Printer Outside Router Range', description: 'Printer on 192.168.192.x, Router on 192.168.1.x' },
   { id: 'duplicate-ip', name: 'Duplicate Static IP', description: 'Two printers sharing the same IP' },
   { id: 'dhcp-reservation', name: 'Correct DHCP Reservation', description: 'Printer always receives the same IP' },
+  { id: 'school-lab', name: 'School Lab', description: 'Switch + 10 Desktops + 1 Printer' },
+  { id: 'coffee-shop', name: 'Coffee Shop', description: '3 Access Points + 8 WiFi Laptops' },
+  { id: 'enterprise', name: 'Enterprise', description: 'Mixed: 2 Switches, 2 APs, 5 Desktops, 5 Laptops, 3 Printers' },
+  { id: 'smart-office', name: 'Smart Office', description: 'Switch + 3 APs + 4 Desktops + 4 Laptops + 2 Printers' },
+  { id: 'reservation-explained', name: 'DHCP Reservation Explained', description: 'Printer-1 has a reservation for .50; other devices pull from the pool' },
 ]
 
 export function generateMac(): string {
@@ -42,8 +47,8 @@ export function getDefaultState() {
       gateway: '192.168.1.1',
       dnsServer: '8.8.8.8',
       dhcpEnabled: true,
-      dhcpRangeStart: '192.168.1.100',
-      dhcpRangeEnd: '192.168.1.200',
+      dhcpRangeStart: '192.168.1.2',
+      dhcpRangeEnd: '192.168.1.254',
       leaseTime: 1440,
     },
     devices: [

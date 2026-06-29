@@ -237,14 +237,14 @@ export const useStore = create<NetworkState & {
   applyScenario: (scenarioId) => {
     const s = get()
 
-    function makeDev(name: string, type: Device['type'], ip: string, online = true): Device {
+    function makeDev(name: string, type: Device['type'], ip: string, online = true, connectionType: Device['connectionType'] = 'ethernet', ipMode: Device['ipMode'] = 'static'): Device {
       return {
-        id: uid(), name, type, mac: generateMac(), connectionType: 'ethernet', ipMode: 'static',
+        id: uid(), name, type, mac: generateMac(), connectionType, ipMode,
         ip, gateway: '192.168.1.1', subnet: '255.255.255.0',
         status: online ? 'online' : 'offline', online,
         firmware: type === 'printer' ? `v2.1.${Math.floor(Math.random() * 5)}` : undefined,
-        manufacturer: type === 'printer' ? 'NetPrint' : type === 'switch' ? 'NetSwitch' : 'Generic',
-        model: type === 'printer' ? `NP-${100 + Math.floor(Math.random() * 900)}` : undefined,
+        manufacturer: type === 'printer' ? 'NetPrint' : type === 'switch' ? 'NetSwitch' : type === 'access-point' ? 'AirWave' : type === 'desktop' ? 'DeskPro' : 'Generic',
+        model: type === 'printer' ? `NP-${100 + Math.floor(Math.random() * 900)}` : type === 'access-point' ? `AW-${100 + Math.floor(Math.random() * 900)}` : undefined,
       }
     }
 
@@ -257,14 +257,14 @@ export const useStore = create<NetworkState & {
       case 'home':
         devices = [
           makeDev('Laptop-1', 'laptop', '192.168.1.10'),
-          makeDev('Printer-1', 'printer', '192.168.1.100'),
-          makeDev('Printer-2', 'printer', '192.168.1.101'),
+          makeDev('Printer-1', 'printer', '192.168.1.50'),
+          makeDev('Printer-2', 'printer', '192.168.1.51'),
         ]
         break
       case 'office':
         devices = [
           makeDev('Switch-1', 'switch', '192.168.1.2'),
-          ...Array.from({ length: 10 }, (_, i) => makeDev(`Printer-${i + 1}`, 'printer', `192.168.1.${110 + i}`)),
+          ...Array.from({ length: 10 }, (_, i) => makeDev(`Printer-${i + 1}`, 'printer', `192.168.1.${50 + i}`)),
           ...Array.from({ length: 5 }, (_, i) => makeDev(`Laptop-${i + 1}`, 'laptop', `192.168.1.${20 + i}`)),
         ]
         break
@@ -272,11 +272,49 @@ export const useStore = create<NetworkState & {
         devices = [
           makeDev('Switch-1', 'switch', '192.168.1.2'),
           makeDev('Switch-2', 'switch', '192.168.1.3'),
-          ...Array.from({ length: 10 }, (_, i) => makeDev(`Printer-R1-${i + 1}`, 'printer', `192.168.1.${120 + i}`)),
-          ...Array.from({ length: 10 }, (_, i) => makeDev(`Printer-R2-${i + 1}`, 'printer', `192.168.1.${150 + i}`)),
+          ...Array.from({ length: 10 }, (_, i) => makeDev(`Printer-R1-${i + 1}`, 'printer', `192.168.1.${50 + i}`)),
+          ...Array.from({ length: 10 }, (_, i) => makeDev(`Printer-R2-${i + 1}`, 'printer', `192.168.1.${70 + i}`)),
         ]
         break
       }
+      case 'school-lab':
+        devices = [
+          makeDev('Switch-1', 'switch', '192.168.1.2'),
+          ...Array.from({ length: 10 }, (_, i) => makeDev(`Desktop-${i + 1}`, 'desktop', `192.168.1.${30 + i}`)),
+          makeDev('Printer-1', 'printer', '192.168.1.50'),
+        ]
+        break
+      case 'coffee-shop':
+        devices = [
+          makeDev('AP-1', 'access-point', '192.168.1.3'),
+          makeDev('AP-2', 'access-point', '192.168.1.4'),
+          makeDev('AP-3', 'access-point', '192.168.1.5'),
+          ...Array.from({ length: 8 }, (_, i) => makeDev(`Laptop-${i + 1}`, 'laptop', `192.168.1.${10 + i}`, true, 'wifi')),
+        ]
+        break
+      case 'enterprise':
+        devices = [
+          makeDev('Switch-1', 'switch', '192.168.1.2'),
+          makeDev('Switch-2', 'switch', '192.168.1.3'),
+          makeDev('AP-1', 'access-point', '192.168.1.4'),
+          makeDev('AP-2', 'access-point', '192.168.1.5'),
+          ...Array.from({ length: 5 }, (_, i) => makeDev(`Desktop-${i + 1}`, 'desktop', `192.168.1.${30 + i}`)),
+          ...Array.from({ length: 5 }, (_, i) => makeDev(`Laptop-${i + 1}`, 'laptop', `192.168.1.${60 + i}`, true, 'wifi')),
+          ...Array.from({ length: 3 }, (_, i) => makeDev(`Printer-${i + 1}`, 'printer', `192.168.1.${50 + i}`)),
+        ]
+        break
+      case 'smart-office':
+        devices = [
+          makeDev('Switch-1', 'switch', '192.168.1.2'),
+          makeDev('AP-1', 'access-point', '192.168.1.3'),
+          makeDev('AP-2', 'access-point', '192.168.1.4'),
+          makeDev('AP-3', 'access-point', '192.168.1.5'),
+          ...Array.from({ length: 4 }, (_, i) => makeDev(`Desktop-${i + 1}`, 'desktop', `192.168.1.${30 + i}`)),
+          ...Array.from({ length: 4 }, (_, i) => makeDev(`Laptop-${i + 1}`, 'laptop', `192.168.1.${60 + i}`, true, 'wifi')),
+          makeDev('Printer-1', 'printer', '192.168.1.50'),
+          makeDev('Printer-2', 'printer', '192.168.1.51'),
+        ]
+        break
       case 'out-of-range':
         router = { ...router, lanIp: '192.168.1.1', subnetMask: '255.255.255.0', dhcpRangeStart: '192.168.1.100', dhcpRangeEnd: '192.168.1.200' }
         devices = [makeDev('Printer-1', 'printer', '192.168.192.168')]
@@ -290,6 +328,7 @@ export const useStore = create<NetworkState & {
         logs.push(log(s, '⚠ IP conflict: Printer-1 and Printer-2 share IP 192.168.1.100', 'error'))
         break
       case 'dhcp-reservation':
+        router = { ...router, dhcpRangeStart: '192.168.1.10', dhcpRangeEnd: '192.168.1.200' }
         devices = [
           makeDev('Printer-1', 'printer', '192.168.1.50'),
           makeDev('Laptop-1', 'laptop', '192.168.1.10'),
@@ -301,6 +340,28 @@ export const useStore = create<NetworkState & {
           id: uid(), mac, ip: '192.168.1.50', hostname: 'Printer-1', status: 'active' as const,
         }]
         logs.push(log(s, '✓ DHCP reservation active: Printer-1 → 192.168.1.50', 'success'))
+        break
+      case 'reservation-explained':
+        router = { ...router, dhcpRangeStart: '192.168.1.50', dhcpRangeEnd: '192.168.1.200' }
+        const p1Mac = generateMac()
+        devices = [
+          makeDev('Printer-1', 'printer', '192.168.1.50', true, 'ethernet', 'dhcp'),
+          makeDev('Printer-2', 'printer', '192.168.1.51', true, 'ethernet', 'dhcp'),
+          makeDev('Laptop-1', 'laptop', '192.168.1.52', true, 'ethernet', 'dhcp'),
+          makeDev('Laptop-2', 'laptop', '192.168.1.53', true, 'wifi', 'dhcp'),
+        ]
+        devices[0].mac = p1Mac
+        devices[0].ip = '192.168.1.50'
+        reservations = [{
+          id: uid(), mac: p1Mac, ip: '192.168.1.50', hostname: 'Printer-1', status: 'active' as const,
+        }]
+        logs.push(
+          log(s, '📌 Printer-1 has a DHCP reservation for 192.168.1.50 — it will always receive this IP', 'success'),
+          log(s, '📋 Printer-2 (no reservation) got 192.168.1.51 from the DHCP pool', 'info'),
+          log(s, '📋 Laptop-1 (no reservation) got 192.168.1.52 from the DHCP pool', 'info'),
+          log(s, '📋 Laptop-2 (no reservation) got 192.168.1.53 from the DHCP pool', 'info'),
+          log(s, '💡 Reservation = binding a MAC address to a fixed IP in the DHCP server', 'info'),
+        )
         break
     }
 

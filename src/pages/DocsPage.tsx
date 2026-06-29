@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import img from '../assets/network-diagram.png'
 
 const SECTIONS = [
   {
@@ -14,146 +15,304 @@ const SECTIONS = [
     title: '2. Types of Networks',
     body: 'Networks are classified based on the area they cover and the technology they use.',
     points: [
-      '<strong>LAN</strong> — A local network inside a home or office.',
-      '<strong>WAN</strong> — Connects multiple LANs over large distances.',
-      '<strong>Internet</strong> — The largest network in the world.',
-      '<strong>Ethernet</strong> — Wired connection.',
-      '<strong>Wi-Fi</strong> — Wireless connection.',
+      'LAN (Local Area Network) – Covers a small area like a home or office.',
+      'WAN (Wide Area Network) – Covers a large geographic area and connects multiple LANs.',
+      'MAN (Metropolitan Area Network) – Covers a city or metropolitan area.',
+      'PAN (Personal Area Network) – Covers a very short range around a person (e.g., Bluetooth).',
     ],
   },
   {
     title: '3. Network Devices',
-    body: 'Every device in a network has a specific role. Understanding these devices makes troubleshooting much easier.',
+    body: 'Each network device performs a specific function. Understanding these devices helps you build, configure, and troubleshoot networks.',
     points: [
-      '<strong>Router</strong> — Connects your local network to other networks such as the Internet.',
-      '<strong>Switch</strong> — Connects multiple devices within the same local network.',
-      '<strong>Access Point</strong> — Provides wireless (Wi-Fi) access to the network.',
-      '<strong>Modem</strong> — Connects your home or office to your Internet Service Provider.',
-      '<strong>Firewall</strong> — Monitors and filters network traffic for security.',
+      '<strong>Modem</strong> — Connects your router or network to your Internet Service Provider (ISP) by converting the ISP\'s signal.',
+      '<strong>Firewall</strong> — Protects the network by monitoring and controlling incoming and outgoing network traffic.',
+      '<strong>Router</strong> — Connects different networks together, such as your local network (LAN) and the Internet.',
+      '<strong>Switch</strong> — Connects devices within the same local network (LAN) and forwards data to the correct device.',
+      '<strong>Access Point (AP)</strong> — Allows wireless (Wi-Fi) devices to connect to a wired network.',
     ],
-  },
-  {
-    title: '4. Typical Home / Office Network',
-    body: 'A simple office network consists of an Internet connection, a router, a switch, and multiple devices.',
-    diagram: `
-Internet
-   │
- Modem
-   │
- Router
-   │
- Switch
- ├───────────┬──────────┐
-Laptop    Printer     Desktop
-`,
+    images:[img]
   },
   {
     title: '4. IP Address',
-    body:'An IP address uniquely identifies a device on a network so other devices know where to send data. Without an IP address, devices cannot communicate.',
+    body: 'An IP (Internet Protocol) address is a unique number assigned to a device on a network. It allows devices to identify and communicate with each other. Every device on the same network must have a unique IP address.',
     points: [
-      '<strong>Private IP</strong> — Used within a local network (e.g. 192.168.x.x).',
-      '<strong>Public IP</strong> — Used on the Internet, assigned by your ISP.',
-      '<strong>Static IP</strong> — Manually assigned, never changes.',
-      '<strong>Dynamic IP (DHCP)</strong> — Automatically assigned, may change over time.',
+      '<strong>Private IP</strong> — Used within a local network (LAN). Example: 192.168.x.x, 10.x.x.x, or 172.16.x.x–172.31.x.x.',
+      '<strong>Public IP</strong> — Assigned by your Internet Service Provider (ISP) and used to communicate over the Internet.',
+      '<strong>Static IP</strong> — Manually configured or reserved, so it remains the same unless changed.',
+      '<strong>Dynamic IP (DHCP)</strong> — Automatically assigned by a DHCP server, which is usually built into the router. The assigned IP address may change over time.',
     ],
     example: {
-      label: 'Example:',
+      label: 'Example LAN:',
       rows: [
+        ['Router (Gateway)', '192.168.1.1'],
         ['Laptop', '192.168.1.10'],
         ['Printer', '192.168.1.20'],
-        ['Router', '192.168.1.1'],
+        ['Phone', '192.168.1.30'],
       ],
     },
   },
   {
     title: '5. Subnet Mask',
-    body: 'The subnet mask tells devices which IP addresses belong to the same local network.',
+    body: 'A subnet mask defines which part of an IP address identifies the network and which part identifies the device (host). It allows devices to determine whether another device is on the same local network or if the data must be sent to a router.',
     example: {
       label: 'Example:',
       rows: [
-        ['IP Address', '192.168.1.10'],
+        ['Network', '192.168.1.0'],
         ['Subnet Mask', '255.255.255.0'],
+        ['CIDR Notation', '/24'],
       ],
     },
     points: [
-      'Determines which devices belong to the same local network.',
-      'Devices on the same subnet can communicate directly.',
-      'Devices on different subnets communicate through the router.',
-    ]
+      'Devices with the same network address belong to the same local network (subnet).',
+      'Devices on the same subnet can communicate directly without a router.',
+      'If the destination is on a different subnet, the data is sent to the default gateway (router).',
+      'The most common subnet mask for home and small office networks is 255.255.255.0 (/24).',
+    ],
   },
   {
     title: '6. Default Gateway',
     body: 'The default gateway is usually the router. Devices send traffic to the gateway whenever the destination is outside the local network.',
-  },
-  {
-    title: '7. DNS',
-    body: 'DNS converts website names into IP addresses.',
     points: [
-      'Example: google.com → IP Address',
-      'Without DNS, users would have to remember IP addresses instead of website names.',
+      'The default gateway is the IP address of the router on the local network.',
+      'It allows devices to communicate with devices on other networks, including the Internet.',
+      'If a device does not have a default gateway configured, it cannot access external networks.',
     ],
+    example: {
+      label: 'Example:',
+      rows: [
+        ['Router (Gateway)', '192.168.1.1'],
+        ['Laptop', '192.168.1.10'],
+        ['Printer', '192.168.1.20'],
+        ['Phone', '192.168.1.30'],
+      ],
+    },
   },
   {
-    title: '8. DHCP',
-    body: 'DHCP automatically assigns IP addresses and other network settings to devices.',
+    title: '7. DNS (Domain Name System)',
+    body: 'DNS translates human-readable domain names into IP addresses, allowing devices to locate websites and other network services.',
     points: [
-      'No manual configuration for every device.',
-      'Reduces configuration mistakes.',
+      '<strong>Purpose</strong> — Converts names like <code>google.com</code> into an IP address.',
+      '<strong>Why it is needed</strong> — Without DNS, you would need to remember IP addresses instead of easy-to-read names.',
+      '<strong>Common DNS Servers</strong> — 8.8.8.8 and 8.8.4.4 (Google), 1.1.1.1 and 1.0.0.1 (Cloudflare), 9.9.9.9 (Quad9).',
+      '<strong>Home Networks</strong> — The router usually provides a DNS server automatically through DHCP.',
     ],
+    example: {
+      label: 'Example DNS Servers:',
+      rows: [
+        ['Router DNS (Home Network)', '192.168.1.1'],
+        ['Google Public DNS', '8.8.8.8'],
+        ['Cloudflare Public DNS', '1.1.1.1'],
+        ['Quad9 Public DNS', '9.9.9.9'],
+      ],
+    },
   },
   {
-    title: '9. MAC Address',
-    body: 'A MAC address is the hardware address of a network interface.',
+    title: '8. DHCP (Dynamic Host Configuration Protocol)',
+    body: 'DHCP automatically assigns network settings to devices when they join a network. This eliminates the need to manually configure each device.',
     points: [
-      '<strong>MAC</strong> = Physical identity of the device (burned into the hardware).',
-      '<strong>IP</strong> = Address used for communication (can change).',
+      '<strong>Automatically Assigns</strong> — IP Address, Subnet Mask, Default Gateway, and DNS Server.',
+      '<strong>DHCP Server</strong> — Usually built into the router in home and small office networks.',
+      '<strong>Advantages</strong> — Reduces manual configuration and prevents IP address conflicts.',
+      '<strong>Dynamic IP</strong> — The assigned IP address may change over time unless it is reserved.',
     ],
+    example: {
+      label: 'Example DHCP Assignment:',
+      rows: [
+        ['IP Address', '192.168.1.25'],
+        ['Subnet Mask', '255.255.255.0'],
+        ['Default Gateway', '192.168.1.1'],
+        ['DNS Server', '192.168.1.1'],
+      ],
+    },
   },
   {
-    title: '10. Basic Network Configuration',
-    body: 'Show where to configure:',
+    title: '9. MAC Address (Media Access Control Address)',
+    body: 'A MAC address is a unique hardware identifier assigned to a network interface (such as an Ethernet or Wi-Fi adapter). It is used to identify devices on a local network.',
     points: [
-      'IP Address',
-      'Subnet Mask',
-      'Default Gateway',
-      'DNS Server',
+      '<strong>MAC Address</strong> — Identifies a network interface on the local network and is typically assigned by the manufacturer.',
+      '<strong>IP Address</strong> — Identifies the device on a network and can change depending on the network configuration.',
+      '<strong>Format</strong> — A MAC address consists of 12 hexadecimal digits, for example: 00:1A:2B:3C:4D:5E.',
+      '<strong>Usage</strong> — Routers and switches use MAC addresses to deliver data within the same local network (LAN).',
     ],
-    note: 'Use DHCP (Automatic) for most devices. Use Static IP for servers, printers, and devices that need a fixed address.',
+    example: {
+      label: 'Example:',
+      rows: [
+        ['MAC Address', '00:1A:2B:3C:4D:5E'],
+        ['IP Address', '192.168.1.20'],
+      ],
+    },
   },
   {
-    title: '11. Basic Connectivity Testing',
-    body: '',
+    title: '10. DHCP Lease Time',
+    body: 'A DHCP lease time is the period for which a device is allowed to use an IP address assigned by the DHCP server. Before the lease expires, the device automatically requests to renew it.',
     points: [
-      '<strong>Windows:</strong> <code>ipconfig</code>, <code>ping</code>, <code>tracert</code>, <code>nslookup</code>',
-      '<strong>Linux:</strong> <code>ip addr</code>, <code>ping</code>, <code>traceroute</code>, <code>nslookup</code>',
+      '<strong>Purpose</strong> — Prevents IP addresses from remaining assigned to devices that have left the network.',
+      '<strong>Automatic Renewal</strong> — Devices usually renew their lease automatically before it expires, so users rarely notice.',
+      '<strong>IP Address Changes</strong> — If the lease cannot be renewed, the device may receive a different IP address.',
+      '<strong>Common Value</strong> — Home routers typically use a lease time of 1440 minutes (24 hours).',
+      '<strong>IP Address Reassignment</strong> — If the device does not renew its DHCP lease before it expires, the DHCP server is free to assign that IP address to another device.',
     ],
+    example: {
+      label: 'Example DHCP Lease:',
+      rows: [
+        ['Assigned IP', '192.168.1.25'],
+        ['Lease Time', '1440 minutes (24 hours)'],
+        ['Renewal', 'Automatic before expiration'],
+      ],
+    },
   },
   {
-    title: '12. Common Network Problems',
-    body: '',
+    title: '11. Common Network Problems',
+    body: 'The following are common network issues, their symptoms, and recommended solutions. Understanding these problems makes troubleshooting much easier.',
     issues: [
-      { problem: 'Incorrect IP Address', symptom: 'Cannot reach the network', fix: 'Set correct IP or switch to DHCP' },
-      { problem: 'Duplicate IP Address', symptom: 'Intermittent connectivity, "IP conflict" error', fix: 'Use DHCP or assign unique static IP' },
-      { problem: 'Incorrect Subnet Mask', symptom: 'Can reach some devices but not others', fix: 'Set mask matching the router (e.g. 255.255.255.0)' },
-      { problem: 'Incorrect Gateway', symptom: 'Cannot reach the Internet', fix: 'Set gateway to the router IP' },
-      { problem: 'Incorrect DNS', symptom: 'Can ping IPs but cannot browse', fix: 'Use router IP or 8.8.8.8' },
-      { problem: 'Loose Cable', symptom: 'No link light, "Network cable unplugged"', fix: 'Re-seat the cable' },
-      { problem: 'Wi-Fi Not Connected', symptom: 'No Internet, no IP address', fix: 'Connect to the correct SSID and enter password' },
+      {
+        problem: 'No IP Address',
+        symptom: 'Device shows "Unidentified Network" or has no network connectivity.',
+        fix: 'Enable DHCP or configure a valid static IP address.'
+      },
+      {
+        problem: 'Incorrect IP Address',
+        symptom: 'Cannot communicate with other devices on the network.',
+        fix: 'Assign an IP address within the correct subnet or enable DHCP.'
+      },
+      {
+        problem: 'Duplicate IP Address',
+        symptom: 'Intermittent connectivity or an "IP address conflict" warning.',
+        fix: 'Assign a unique IP address or use DHCP.'
+      },
+      {
+        problem: 'Incorrect Subnet Mask',
+        symptom: 'Some local devices are unreachable.',
+        fix: 'Use the same subnet mask as the rest of the network (e.g. 255.255.255.0).'
+      },
+      {
+        problem: 'Incorrect Default Gateway',
+        symptom: 'Local devices work, but the Internet or other networks are unreachable.',
+        fix: 'Set the gateway to the router\'s IP address.'
+      },
+      {
+        problem: 'Incorrect DNS Server',
+        symptom: 'Websites cannot be opened, but IP addresses can still be reached.',
+        fix: 'Use a valid DNS server such as your router, 8.8.8.8, or 1.1.1.1.'
+      },
+      {
+        problem: 'DHCP Disabled or Unavailable',
+        symptom: 'Device does not receive an IP address automatically.',
+        fix: 'Enable DHCP on the router or configure a static IP.'
+      },
+      {
+        problem: 'Network Cable Disconnected',
+        symptom: 'No link light or "Network cable unplugged" message.',
+        fix: 'Reconnect or replace the Ethernet cable.'
+      },
+      {
+        problem: 'Faulty Ethernet Cable',
+        symptom: 'Slow, unstable, or no network connection.',
+        fix: 'Replace the cable with a known working one.'
+      },
+      {
+        problem: 'Wi-Fi Not Connected',
+        symptom: 'No network or Internet access.',
+        fix: 'Connect to the correct Wi-Fi network (SSID) and enter the correct password.'
+      },
+      {
+        problem: 'Weak Wi-Fi Signal',
+        symptom: 'Slow speed, high latency, or frequent disconnections.',
+        fix: 'Move closer to the access point or reduce interference.'
+      },
+      {
+        problem: 'Wrong Wi-Fi Password',
+        symptom: 'Unable to join the wireless network.',
+        fix: 'Verify and re-enter the correct password.'
+      },
+      {
+        problem: 'Printer on a Different Subnet',
+        symptom: 'Printer cannot be discovered or reached.',
+        fix: 'Ensure the computer and printer are on the same subnet, or configure routing between subnets.'
+      },
+      {
+        problem: 'Firewall Blocking Traffic',
+        symptom: 'Device is reachable by ping but the application cannot connect.',
+        fix: 'Allow the required application or network ports through the firewall.'
+      },
+      {
+        problem: 'Incorrect Printer IP Address',
+        symptom: 'Printing fails or the printer cannot be found.',
+        fix: 'Verify the printer\'s IP address and update the application or driver settings.'
+      },
+      {
+        problem: 'Network Interface Disabled',
+        symptom: 'Ethernet or Wi-Fi appears disconnected.',
+        fix: 'Enable the network adapter in the operating system.'
+      },
+      {
+        problem: 'Speed or Duplex Mismatch',
+        symptom: 'Slow or unstable wired network connection.',
+        fix: 'Use Auto Negotiation or configure matching speed and duplex settings.'
+      },
+      {
+        problem: 'Router or Switch Failure',
+        symptom: 'Multiple devices lose network connectivity.',
+        fix: 'Restart the device and check cables, power, and status LEDs.'
+      },
+      {
+        problem: 'MAC Address Filtering',
+        symptom: 'A device cannot join the network even with correct settings.',
+        fix: 'Add the device\'s MAC address to the allowed list or disable MAC filtering.'
+      },
+      {
+        problem: 'IP Address Changed (DHCP)',
+        symptom: 'Applications can no longer find the printer.',
+        fix: 'Assign a static IP address or create a DHCP reservation for the printer.'
+      },
     ],
   },
   {
-    title: '13. Practical Demonstration',
-    body: '',
-    steps: [
-      'Connect devices through a switch.',
-      'Configure a printer with a static IP.',
-      'Configure a laptop using DHCP.',
-      'Verify communication using ping.',
-      'Access the printer\'s web interface.',
-      'Change the IP address and reconnect.',
-      'Intentionally misconfigure a setting and troubleshoot it.',
-    ],
-  },
+    title: 'What is the difference between a Network Range and a DHCP Range?',
+    body: 'Understanding the difference between a Network Range and a DHCP Range is crucial for proper network configuration and management.',
+    table: {
+      headers: ['Feature', 'Network Range', 'DHCP Range'],
+      rows: [
+        [
+          'Definition',
+          'All valid IP addresses within a network.',
+          'The subset of IP addresses that the DHCP server can assign automatically.',
+        ],
+        [
+          'Determined By',
+          'IP Address and Subnet Mask',
+          'DHCP Server Configuration',
+        ],
+        [
+          'Purpose',
+          'Defines which devices belong to the same network.',
+          'Provides automatic IP assignment to devices.',
+        ],
+        [
+          'Contains',
+          'Both Static and Dynamic IP addresses',
+          'Only Dynamic IP addresses',
+        ],
+        [
+          'Can be configured manually?',
+          'No (depends on network/subnet)',
+          'Yes (configured on the router or DHCP server)',
+        ],
+        [
+          'Example',
+          '192.168.1.1 - 192.168.1.254',
+          '192.168.1.100 - 192.168.1.200',
+        ],
+        [
+          'Used for Static IPs',
+          'Yes',
+          'No (typically excluded from the DHCP pool)',
+        ],
+      ],
+    },
+    note: 'The DHCP Range is always a subset of the Network Range. Static IP devices such as routers, printers, and servers should use addresses outside the DHCP Range but still within the Network Range.',
+  }
 ]
 
 export default function DocsPage() {
@@ -161,8 +320,8 @@ export default function DocsPage() {
     <div className="space-y-6">
       <div className="page-header">
         <div>
-          <h1>Session Guide</h1>
-          <p>Networking Basics — practical reference for the training session</p>
+          <h1>Docs</h1>
+          <p>Networking Basics</p>
         </div>
       </div>
 
@@ -192,6 +351,29 @@ export default function DocsPage() {
                   <li key={j} dangerouslySetInnerHTML={{ __html: pt }} />
                 ))}
               </ul>
+            )}
+
+            {'table' in s && s.table && (
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full text-xs border-collapse">
+                  <thead>
+                    <tr className="text-muted border-b border-line/60">
+                      {s.table.headers.map((h) => (
+                        <th key={h} className="text-left py-2 pr-4 font-medium">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {s.table.rows.map((row, j) => (
+                      <tr key={j} className="border-b border-line/30 hover:bg-panel-2/40">
+                        {row.map((cell, k) => (
+                          <td key={k} className="py-2 pr-4 text-fg/80">{cell}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
 
             {'example' in s && s.example && (
@@ -249,6 +431,15 @@ export default function DocsPage() {
                   <li key={j}>{step}</li>
                 ))}
               </ol>
+            )}
+
+
+            {'images' in s && s.images && (
+              <div className="mt-3 flex flex-wrap gap-3">
+                {s.images.map((img, j) => (
+                  <img key={j} src={img} alt="" className="rounded-xl border border-line/40 max-w-full" />
+                ))}
+              </div>
             )}
           </motion.div>
         ))}

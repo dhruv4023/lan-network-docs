@@ -166,36 +166,7 @@ export default function RouterPage() {
                 <span className="badge badge-muted">{router.lanIp}</span>
               </div>
             </div>
-            <div className="space-y-2 text-xs">
-              <div className="flex justify-between">
-                <span className="text-muted">Uptime</span>
-                <span className="font-mono">{Math.floor(Math.random() * 24)}h {Math.floor(Math.random() * 60)}m</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted">CPU</span>
-                <span className="font-mono">{Math.floor(Math.random() * 30 + 10)}%</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted">Memory</span>
-                <span className="font-mono">{Math.floor(Math.random() * 40 + 30)}%</span>
-              </div>
-            </div>
           </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-            className="panel"
-          >
-            <h2 className="text-base font-semibold mt-0 mb-3">Actions</h2>
-            <div className="flex flex-col gap-2">
-              <button onClick={() => simulateAction('restart-router')} className="btn btn-ghost text-xs w-full justify-center">
-                Restart Router
-              </button>
-            </div>
-          </motion.div>
-
           {valid && (
             <motion.div
               initial={{ opacity: 0, y: 16 }}
