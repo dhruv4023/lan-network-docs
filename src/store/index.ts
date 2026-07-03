@@ -34,7 +34,7 @@ const initialState: NetworkState = saved || {
     message: 'Network simulator initialized. Default topology created.',
     severity: 'info',
   }],
-  settings: { theme: 'dark', sidebarOpen: true, activePage: 'dashboard' },
+  settings: { theme: 'light', sidebarOpen: true, activePage: 'dashboard' },
 }
 
 export const useStore = create<NetworkState & {
@@ -230,7 +230,7 @@ export const useStore = create<NetworkState & {
         message: 'Network reset to default configuration.',
         severity: 'warn',
       }],
-      settings: { theme: 'dark', sidebarOpen: true, activePage: 'dashboard' },
+      settings: { theme: 'light', sidebarOpen: true, activePage: 'dashboard' },
     })
   },
 
