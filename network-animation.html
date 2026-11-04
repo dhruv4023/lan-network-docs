@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A Real Network</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #0b0e17;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+h1 {
+  text-align: center;
+  font-weight: 300;
+  font-size: 1.6rem;
+  letter-spacing: 2px;
+  color: #7ec8e3;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+}
+
+.network {
+  max-width: 900px;
+  width: 100%;
+}
+
+svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 0 20px rgba(126, 200, 227, 0.06));
+}
+
+/* ---- node boxes ---- */
+.node rect {
+  rx: 8;
+  ry: 8;
+  stroke-width: 1.5;
+  transition: filter 0.3s;
+}
+
+.node .label {
+  fill: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.node .sub {
+  fill: #8899aa;
+  font-size: 10px;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.node .badge {
+  fill: #4a9fc5;
+  font-size: 9px;
+  text-anchor: middle;
+  dominant-baseline: central;
+  letter-spacing: 0.3px;
+}
+
+/* ---- connections ---- */
+.link {
+  stroke: #2a4055;
+  stroke-width: 2;
+  fill: none;
+}
+
+.link-wave {
+  stroke: #4a9fc5;
+  stroke-width: 2;
+  fill: none;
+  stroke-dasharray: 8 12;
+  animation: wave 1.2s linear infinite;
+  opacity: 0.5;
+}
+
+.link-wave.dhcp {
+  stroke: #f0c27f;
+  stroke-dasharray: 6 14;
+  animation-duration: 1.6s;
+  opacity: 0.4;
+}
+
+@keyframes wave {
+  to { stroke-dashoffset: -40; }
+}
+
+/* ---- glow pulses ---- */
+.pulse {
+  animation: pulse-node 2.4s ease-in-out infinite;
+}
+
+.pulse:nth-child(2) { animation-delay: 0.4s; }
+.pulse:nth-child(3) { animation-delay: 0.8s; }
+.pulse:nth-child(4) { animation-delay: 1.2s; }
+.pulse:nth-child(5) { animation-delay: 1.6s; }
+.pulse:nth-child(6) { animation-delay: 2.0s; }
+
+@keyframes pulse-node {
+  0%, 100% { opacity: 0.15; r: 4; }
+  50% { opacity: 0.5; r: 7; }
+}
+
+/* ---- data packets ---- */
+.packet {
+  fill: #7ec8e3;
+  animation: fly 2.8s linear infinite;
+  opacity: 0.7;
+}
+
+.packet-dhcp {
+  fill: #f0c27f;
+  animation: fly-dhcp 3.6s linear infinite;
+  opacity: 0.6;
+}
+
+@keyframes fly {
+  0% { transform: translate(0, 0); opacity: 0; }
+  5% { opacity: 0.8; }
+  45% { opacity: 0.8; }
+  50% { opacity: 0; transform: translate(var(--dx), var(--dy)); }
+  100% { transform: translate(var(--dx), var(--dy)); opacity: 0; }
+}
+
+@keyframes fly-dhcp {
+  0% { transform: translate(0, 0); opacity: 0; }
+  5% { opacity: 0.6; }
+  45% { opacity: 0.6; }
+  50% { opacity: 0; transform: translate(var(--dx), var(--dy)); }
+  100% { transform: translate(var(--dx), var(--dy)); opacity: 0; }
+}
+
+/* ---- Subnet pulse ring ---- */
+.subnet-ring {
+  fill: none;
+  stroke: #1a3a50;
+  stroke-width: 1;
+  animation: ring-expand 4s ease-out infinite;
+}
+
+@keyframes ring-expand {
+  0% { r: 60; opacity: 0.4; }
+  100% { r: 140; opacity: 0; }
+}
+
+/* ---- Legend ---- */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 28px;
+  justify-content: center;
+  margin-top: 16px;
+  font-size: 12px;
+  color: #8899aa;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-line {
+  width: 28px;
+  height: 2px;
+  border-radius: 1px;
+}
+
+.legend-line.blue { background: #4a9fc5; }
+.legend-line.gold { background: #f0c27f; }
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #7ec8e3;
+  animation: pulse-node 2s ease-in-out infinite;
+}
+
+/* ---- Title area ---- */
+.title-area {
+  margin-bottom: 20px;
+}
+
+.subtitle {
+  text-align: center;
+  font-size: 13px;
+  color: #5a7388;
+  margin-top: 6px;
+  font-style: italic;
+}
+
+/* ---- responsive ---- */
+@media (max-width: 600px) {
+  .node .label { font-size: 10px; }
+  .node .sub { font-size: 8px; }
+  .node .badge { font-size: 7px; }
+  .legend { font-size: 10px; gap: 10px 16px; }
+}
+</style>
+</head>
+<body>
+
+<div class="network">
+  <div class="title-area">
+    <h1>A Real Network</h1>
+    <div class="subtitle">Internet comes from ISP · Router creates your LAN · DHCP gives everyone an IP</div>
+  </div>
+
+  <svg viewBox="0 0 840 620" xmlns="http://www.w3.org/2000/svg">
+
+    <defs>
+      <!-- glow filters -->
+      <filter id="glow-blue">
+        <feGaussianBlur stdDeviation="3" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <filter id="glow-gold">
+        <feGaussianBlur stdDeviation="3" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <filter id="shadow">
+        <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.4"/>
+      </filter>
+    </defs>
+
+    <!-- background subtle grid -->
+    <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
+      <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#131d2b" stroke-width="0.5"/>
+    </pattern>
+    <rect width="840" height="620" fill="url(#grid)"/>
+
+    <!-- ===== LINKS ===== -->
+
+    <!-- Internet ── ISP Modem -->
+    <line class="link" x1="420" y1="45" x2="420" y2="110"/>
+    <line class="link-wave" x1="420" y1="45" x2="420" y2="110" style="--dx:0;--dy:65px"/>
+
+    <!-- ISP Modem ── Router -->
+    <line class="link" x1="420" y1="175" x2="420" y2="240"/>
+    <line class="link-wave" x1="420" y1="175" x2="420" y2="240" style="--dx:0;--dy:65px"/>
+
+    <!-- Router ── Ethernet switch glyph -->
+    <line class="link" x1="420" y1="340" x2="420" y2="380"/>
+
+    <!-- Ethernet ── Developer PC -->
+    <line class="link" x1="420" y1="400" x2="240" y2="400"/>
+    <line class="link-wave" x1="420" y1="400" x2="240" y2="400" style="--dx:-180px;--dy:0"/>
+
+    <!-- Ethernet ── Thermal Printer -->
+    <line class="link" x1="420" y1="400" x2="600" y2="400"/>
+    <line class="link-wave" x1="420" y1="400" x2="600" y2="400" style="--dx:180px;--dy:0"/>
+    <line class="link-wave dhcp" x1="600" y1="400" x2="420" y2="400" style="--dx:-180px;--dy:0"/>
+
+    <!-- Wi-Fi ── Android Phone (dashed) -->
+    <line class="link" x1="420" y1="340" x2="645" y2="250" stroke-dasharray="6 4"/>
+    <line class="link-wave" x1="420" y1="340" x2="645" y2="250" style="--dx:225px;--dy:-90px" stroke-dasharray="6 10"/>
+    <line class="link-wave dhcp" x1="645" y1="250" x2="420" y2="340" style="--dx:-225px;--dy:90px" stroke-dasharray="4 12"/>
+
+    <!-- ===== PULSE DOTS ON LINKS ===== -->
+    <circle class="pulse" cx="420" cy="75" r="4" fill="#7ec8e3"/>
+    <circle class="pulse" cx="420" cy="205" r="4" fill="#7ec8e3"/>
+    <circle class="pulse" cx="330" cy="400" r="4" fill="#7ec8e3"/>
+    <circle class="pulse" cx="510" cy="400" r="4" fill="#7ec8e3"/>
+    <circle class="pulse" cx="540" cy="290" r="4" fill="#f0c27f"/>
+
+    <!-- ===== FLOATING PACKETS ===== -->
+    <rect class="packet" x="416" y="60" width="8" height="6" rx="2"/>
+    <rect class="packet" x="416" y="190" width="8" height="6" rx="2"/>
+    <rect class="packet" x="340" y="397" width="8" height="6" rx="2"/>
+    <rect class="packet" x="500" y="397" width="8" height="6" rx="2"/>
+    <rect class="packet-dhcp" x="510" y="397" width="8" height="6" rx="2"/>
+    <rect class="packet-dhcp" x="520" y="290" width="8" height="6" rx="2"/>
+
+    <!-- ===== SUBNET RING (around router) ===== -->
+    <circle class="subnet-ring" cx="420" cy="290" r="60"/>
+    <circle class="subnet-ring" cx="420" cy="290" r="60" style="animation-delay:1.3s"/>
+    <circle class="subnet-ring" cx="420" cy="290" r="60" style="animation-delay:2.6s"/>
+
+    <!-- ===== NODES ===== -->
+
+    <!-- Internet -->
+    <g class="node" filter="url(#shadow)">
+      <rect x="365" y="10" width="110" height="36" fill="#0f1a28" stroke="#3a6a8a"/>
+      <text class="label" x="420" y="28">☁ Internet</text>
+    </g>
+
+    <!-- ISP Modem -->
+    <g class="node" filter="url(#shadow)">
+      <rect x="365" y="110" width="110" height="36" fill="#131f30" stroke="#2a5a7a"/>
+      <text class="label" x="420" y="128">ISP Modem</text>
+      <text class="sub" x="420" y="146">Public IP</text>
+    </g>
+
+    <!-- Router -->
+    <g class="node" filter="url(#shadow)">
+      <rect x="340" y="240" width="160" height="52" fill="#162c40" stroke="#4a9fc5"/>
+      <text class="label" x="420" y="260">Router (Gateway)</text>
+      <text class="sub" x="420" y="276">192.168.1.1</text>
+      <text class="badge" x="420" y="290">DHCP + DNS Server</text>
+    </g>
+
+    <!-- LAN label -->
+    <text x="420" y="370" fill="#2a5a7a" font-size="10" text-anchor="middle" letter-spacing="2">
+      ═══ LAN ── 192.168.1.0/24 ═══
+    </text>
+
+    <!-- Ethernet label -->
+    <text x="315" y="388" fill="#4a6a8a" font-size="9" text-anchor="middle" letter-spacing="1">Ethernet</text>
+
+    <!-- Developer PC -->
+    <g class="node" filter="url(#shadow)">
+      <rect x="155" y="380" width="170" height="46" fill="#1c2a3a" stroke="#4a9fc5"/>
+      <text class="label" x="240" y="398">💻 Developer PC</text>
+      <text class="sub" x="240" y="414">192.168.1.10</text>
+    </g>
+
+    <!-- Thermal Printer -->
+    <g class="node" filter="url(#shadow)">
+      <rect x="520" y="380" width="160" height="46" fill="#1c2a3a" stroke="#4a9fc5"/>
+      <text class="label" x="600" y="398">🖨 Thermal Printer</text>
+      <text class="sub" x="600" y="414">192.168.1.20</text>
+    </g>
+
+    <!-- Wi-Fi label -->
+    <text x="540" y="286" fill="#4a6a8a" font-size="9" text-anchor="middle" letter-spacing="1">Wi-Fi</text>
+
+    <!-- Android Phone -->
+    <g class="node" filter="url(#shadow)">
+      <rect x="565" y="210" width="160" height="46" fill="#1c2a3a" stroke="#7eb85e"/>
+      <text class="label" x="645" y="228">📱 Android Phone</text>
+      <text class="sub" x="645" y="244">192.168.1.30</text>
+    </g>
+
+  </svg>
+
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-line blue"></div>
+      <span>Data traffic</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-line gold"></div>
+      <span>DHCP lease / ack</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot"></div>
+      <span>Live activity</span>
+    </div>
+    <div class="legend-item">
+      <span style="color:#3a6a8a;">192.168.1.0/24</span>
+      <span>Subnet</span>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

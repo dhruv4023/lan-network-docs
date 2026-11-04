@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import img from '../assets/network-diagram.png'
+import NetworkDiagram from '../components/NetworkDiagram'
 
 const SECTIONS = [
   {
@@ -10,15 +11,16 @@ const SECTIONS = [
       'Enables resource sharing such as printers and Internet.',
       'Can be wired (Ethernet) or wireless (Wi-Fi).',
     ],
+    diagramComponent: NetworkDiagram
   },
   {
     title: '2. Types of Networks',
     body: 'Networks are classified based on the area they cover and the technology they use.',
     points: [
+      'PAN (Personal Area Network) – Covers a very short range around a person (e.g., Bluetooth).',
       'LAN (Local Area Network) – Covers a small area like a home or office.',
       'WAN (Wide Area Network) – Covers a large geographic area and connects multiple LANs.',
-      'MAN (Metropolitan Area Network) – Covers a city or metropolitan area.',
-      'PAN (Personal Area Network) – Covers a very short range around a person (e.g., Bluetooth).',
+      'MAN (Metropolitan Area Network) – Covers a city or metropolitan area. A network of networks(e.g. Internet).',
     ],
   },
   {
@@ -419,10 +421,16 @@ export default function DocsPage() {
               </div>
             )}
 
-            {'diagram' in s && s.diagram && (
+            {('diagram' in s && s.diagram && (
               <pre className="mt-3 bg-panel-2/60 rounded-xl p-4 border border-line/40 text-xs font-mono whitespace-pre-wrap">
                 {s.diagram}
               </pre>
+            ))}
+
+            {'diagramComponent' in s && s.diagramComponent && (
+              <div className="mt-3">
+                <s.diagramComponent />
+              </div>
             )}
 
             {'steps' in s && s.steps && (
