@@ -341,14 +341,15 @@ const SECTIONS: Section[] = [
 		images: [dualNetworkLaptopImg],
 	},
 	{
-		title: '13. Share Files Over a Local Network Using BusyBox',
-		body: 'Quickly share files from your Linux device to any other device on the same Wi-Fi or Ethernet network using BusyBox’s built-in HTTP server.',
+		title: '13. Share Files Over a Local Network Using Python',
+		body: 'Quickly share files from your device to any other device on the same Wi-Fi or Ethernet network using Python’s built-in HTTP server (no extra installation needed).',
+		points: [
+			'<strong>Protocol &amp; Port</strong> — Uses plain HTTP on port <code>8000</code> (unencrypted, best for trusted local networks).',
+			'<strong>No Login Required</strong> — Any device on the same LAN can download files directly in a web browser.',
+			'<strong>Read-Only Sharing</strong> — Others can view and download files from the shared folder, not modify your system.',
+			'<strong>Temporary Use</strong> — Runs only while active in your terminal and stops immediately with <code>Ctrl+C</code>.',
+		],
 		commands: [
-			{
-				title: 'Install BusyBox',
-				description: 'Installs BusyBox, which includes a lightweight HTTP server (httpd).',
-				command: 'sudo apt install busybox',
-			},
 			{
 				title: 'Allow Firewall Access',
 				badge: 'If UFW enabled',
@@ -357,8 +358,8 @@ const SECTIONS: Section[] = [
 			},
 			{
 				title: 'Start Sharing',
-				description: 'Run inside the folder you want to share. -f keeps it in the foreground; 0.0.0.0:8000 listens on all interfaces.',
-				command: 'busybox httpd -f -p 0.0.0.0:8000',
+				description: 'Run inside the folder you want to share. Starts a built-in web server on port 8000.',
+				command: 'python3 -m http.server 8000',
 			},
 			{
 				title: 'Access from Another Device',
@@ -372,7 +373,65 @@ const SECTIONS: Section[] = [
 				command: 'sudo ufw delete allow 8000/tcp',
 			},
 		],
-		note: 'Both devices must be on the same local network. Always run busybox inside the folder you want to share, and delete the UFW rule when finished.',
+		note: 'Both devices must be on the same local network. Always run the Python command inside the folder you want to share, and delete the UFW rule when finished.',
+	},
+	{
+		title: '14. Connect to Another Device Over SSH',
+		body: 'SSH (Secure Shell) lets you securely access a terminal and transfer files on another device over your local network using an encrypted connection.',
+		points: [
+			'<strong>Protocol &amp; Port</strong> — Uses encrypted SSH on port <code>22</code>, keeping logins and data private.',
+			'<strong>Authentication</strong> — Requires a valid username and password (or SSH key) on the target device.',
+			'<strong>Full Remote Access</strong> — Provides an interactive terminal and two-way file transfers via <code>scp</code>.',
+			'<strong>Background Service</strong> — Runs continuously as a system service once installed.',
+		],
+		commands: [
+			{
+				title: 'Install OpenSSH Server',
+				badge: 'Target Device',
+				description: 'Installs and starts the SSH server on the Linux device you want to connect to.',
+				command: 'sudo apt install openssh-server',
+			},
+			{
+				title: 'Allow Firewall Access',
+				badge: 'If UFW enabled',
+				description: 'Opens SSH (port 22) in UFW so other devices on your local network can connect.',
+				command: 'sudo ufw allow ssh',
+			},
+			{
+				title: 'Connect from Another Device',
+				description: 'Logs into the remote device over the LAN. Replace <username> and <device-ip> (check IP with hostname -I).',
+				command: 'ssh <username>@<device-ip>',
+			},
+			{
+				title: 'Copy Files Over SSH (SCP)',
+				badge: 'Optional',
+				description: 'Securely copies a file from your device to the remote device’s home directory.',
+				command: 'scp file.txt <username>@<device-ip>:~/',
+			},
+			{
+				title: 'Disconnect',
+				description: 'Closes the remote SSH session and returns to your local terminal.',
+				command: 'exit',
+			},
+		],
+		note: 'Both devices must be on the same local network. On first connection, type "yes" to trust the host fingerprint and enter the target user’s password.',
+	},
+	{
+		title: '15. LAN File Share (Python) vs SSH',
+		body: 'Both tools work over a local network, but they serve different purposes depending on whether you just need to send files or control another device.',
+		table: {
+			headers: ['Feature', 'Python (LAN Share)', 'SSH / SCP'],
+			rows: [
+				['Main Purpose', 'Quickly share/download files', 'Remote terminal access & file transfer'],
+				['Protocol & Port', 'HTTP (port 8000)', 'SSH (port 22)'],
+				['Encryption', 'None (plain HTTP)', 'Encrypted'],
+				['Authentication', 'No login required', 'Username & password or SSH key'],
+				['Client Needed', 'Any web browser', 'SSH client / terminal'],
+				['Access Level', 'Read-only (shared folder only)', 'Full shell & two-way file transfer'],
+				['Best For', 'Fast file sharing to phones/laptops', 'Managing devices & secure transfers'],
+			],
+		},
+		note: 'Use Python when you want the fastest way to share files to any browser on your LAN without installing anything extra. Use SSH when you need security, two-way transfers, or remote command-line control.',
 	},
 ]
 
