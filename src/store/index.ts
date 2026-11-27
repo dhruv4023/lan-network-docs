@@ -51,6 +51,7 @@ export const useStore = create<NetworkState & {
   releaseLease: (id: string) => void
   renewLease: (id: string) => void
   addLog: (msg: string, severity: LogEntry['severity']) => void
+  clearLogs: () => void
   resetNetwork: () => void
   applyScenario: (scenarioId: string) => void
   addLease: (hostname: string, mac: string, ip: string) => void
@@ -98,14 +99,27 @@ export const useStore = create<NetworkState & {
   }),
 
   addDevice: (d) => set(s => {
+    const now = new Date()
     const devices = [...s.devices, d]
     const topoNode: TopologyNode = { id: uid(), deviceId: d.id, x: 200 + Math.random() * 400, y: 250 + Math.random() * 200, connections: [] }
     const topology = [...s.topology, topoNode]
+    const leases = d.ipMode === 'dhcp' && d.ip
+      ? [...s.leases, {
+          id: uid(),
+          hostname: d.name,
+          mac: d.mac,
+          ip: d.ip,
+          leaseStart: now.toISOString(),
+          leaseExpiry: getLeaseExpiry(s.router.leaseTime, now),
+          status: 'active' as const,
+        }]
+      : s.leases
     const next = {
       ...s,
       devices,
+      leases,
       topology,
-      logs: [...s.logs, log(s, `Device "${d.name}" added with IP ${d.ip}`, 'success')],
+      logs: [...s.logs, log(s, `Device "${d.name}" added with IP ${d.ip || 'unassigned'}`, 'success')],
     }
     persistState(next)
     return next
@@ -216,10 +230,17 @@ export const useStore = create<NetworkState & {
     return next
   }),
 
+  clearLogs: () => set(s => {
+    const next = { ...s, logs: [] }
+    persistState(next)
+    return next
+  }),
+
   resetNetwork: () => {
     clearAll()
+    const s = get()
     const def = getDefaultState()
-    set({
+    const next: NetworkState = {
       ...def as unknown as NetworkState,
       reservations: [],
       leases: [],
@@ -230,8 +251,10 @@ export const useStore = create<NetworkState & {
         message: 'Network reset to default configuration.',
         severity: 'warn',
       }],
-      settings: { theme: 'light', sidebarOpen: true, activePage: 'dashboard' },
-    })
+      settings: { theme: s.settings.theme, sidebarOpen: s.settings.sidebarOpen, activePage: 'dashboard' },
+    }
+    persistState(next)
+    set(next)
   },
 
   applyScenario: (scenarioId) => {
@@ -379,22 +402,23 @@ export const useStore = create<NetworkState & {
 
   assignNextIp: (deviceId) => {
     const s = get()
+    if (!ip.isValidIp(s.router.dhcpRangeStart) || !ip.isValidIp(s.router.dhcpRangeEnd)) return null
     const dev = s.devices.find(d => d.id === deviceId)
-    if (!dev) return null
+    if (dev) {
+      const reserved = s.reservations.find(r => r.mac.toLowerCase() === dev.mac.toLowerCase())
+      if (reserved) return reserved.ip
+    }
     const net = ip.networkAddress(s.router.lanIp, s.router.subnetMask)
     const bcast = ip.broadcastAddress(s.router.lanIp, s.router.subnetMask)
     const exclude = [s.router.lanIp, s.router.gateway, net, bcast]
-    return findNextAvailableIp(s.router.dhcpRangeStart, s.router.dhcpRangeEnd, s.devices, s.reservations, exclude)
+    const otherDevices = dev ? s.devices.filter(d => d.id !== deviceId) : s.devices
+    return findNextAvailableIp(s.router.dhcpRangeStart, s.router.dhcpRangeEnd, otherDevices, s.reservations, exclude)
   },
 
   assignDhcpIp: (deviceId) => {
     const s = get()
-    const dev = s.devices.find(d => d.id === deviceId)
-    if (!dev) return null
     if (!s.router.dhcpEnabled) return null
-    const nextIp = s.assignNextIp(deviceId)
-    if (!nextIp) return null
-    return nextIp
+    return s.assignNextIp(deviceId)
   },
 
   assignDhcpIpAndUpdate: (deviceId) => {
@@ -402,15 +426,28 @@ export const useStore = create<NetworkState & {
     const nextIp = s.assignDhcpIp(deviceId)
     if (!nextIp) return null
 
+    const now = new Date()
     const devices = s.devices.map(d =>
-      d.id === deviceId ? { ...d, ip: nextIp, ipMode: 'dhcp' as const, status: 'online' as DeviceStatus, online: true, lastSeen: new Date().toISOString() } : d
+      d.id === deviceId ? { ...d, ip: nextIp, ipMode: 'dhcp' as const, status: 'online' as DeviceStatus, online: true, lastSeen: now.toISOString() } : d
     )
     const dev = devices.find(d => d.id === deviceId)
+    const leases = dev ? [
+      ...s.leases.filter(l => l.mac !== dev.mac || l.status !== 'active'),
+      {
+        id: uid(),
+        hostname: dev.name,
+        mac: dev.mac,
+        ip: nextIp,
+        leaseStart: now.toISOString(),
+        leaseExpiry: getLeaseExpiry(s.router.leaseTime, now),
+        status: 'active' as const,
+      },
+    ] : s.leases
 
-    s.addLease(dev?.name || 'Unknown', dev?.mac || '', nextIp)
     const next = {
       ...s,
       devices,
+      leases,
       logs: [...s.logs, log(s, `DHCP: ${dev?.name || 'Device'} assigned ${nextIp}`, 'success')],
     }
     persistState(next)

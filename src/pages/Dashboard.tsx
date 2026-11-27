@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useStore } from '../store'
-import { calcIp } from '../utils/ip'
+import { calcIp, isInSubnet, isValidIp } from '../utils/ip'
 import { SCENARIOS } from '../data/scenarios'
 
 function StatCard({ label, value, color, index }: { label: string; value: string | number; color: string; index: number }) {
@@ -31,9 +31,18 @@ export default function Dashboard() {
   const offline = total - online
   const dhcpCount = devices.filter(d => d.ipMode === 'dhcp').length
   const staticCount = devices.filter(d => d.ipMode === 'static').length
-  const freeIps = ipInfo.usableHosts - devices.length - reservations.length
 
-  const usagePct = Math.round((1 - Math.max(0, freeIps) / ipInfo.usableHosts) * 100)
+  const usedIps = new Set<string>()
+  devices.forEach(d => { if (d.ip && isValidIp(d.ip) && isInSubnet(d.ip, router.lanIp, router.subnetMask)) usedIps.add(d.ip) })
+  reservations.forEach(r => { if (r.ip && isValidIp(r.ip) && isInSubnet(r.ip, router.lanIp, router.subnetMask)) usedIps.add(r.ip) })
+  const usedCount = usedIps.size
+  const freeIps = Math.max(0, ipInfo.usableHosts - usedCount)
+  const usagePct = ipInfo.usableHosts > 0 ? Math.min(100, Math.round((usedCount / ipInfo.usableHosts) * 100)) : 0
+
+  const ipCounts = new Map<string, number>()
+  devices.forEach(d => { if (d.ip) ipCounts.set(d.ip, (ipCounts.get(d.ip) || 0) + 1) })
+  const duplicateCount = Array.from(ipCounts.values()).filter(c => c > 1).length
+  const outOfSubnetCount = devices.filter(d => d.ip && isValidIp(d.ip) && !isInSubnet(d.ip, router.lanIp, router.subnetMask)).length
 
   const recentLogs = [...logs].reverse().slice(0, 5)
 
@@ -77,9 +86,15 @@ export default function Dashboard() {
             />
           </div>
           <div className="flex justify-between text-[10px] text-muted mt-1.5">
-            <span>Used: {total + reservations.length}</span>
-            <span>Free: {Math.max(0, freeIps)}</span>
+            <span>Used: {usedCount}</span>
+            <span>Free: {freeIps}</span>
           </div>
+          {(duplicateCount > 0 || outOfSubnetCount > 0) && (
+            <div className="mt-3 bg-danger-dim/50 border border-danger/30 rounded-lg px-3 py-2 text-xs text-danger">
+              {duplicateCount > 0 && <span>{duplicateCount} IP conflict{duplicateCount > 1 ? 's' : ''} detected. </span>}
+              {outOfSubnetCount > 0 && <span>{outOfSubnetCount} device{outOfSubnetCount > 1 ? 's' : ''} outside subnet.</span>}
+            </div>
+          )}
         </div>
 
         <div className="panel">
@@ -128,7 +143,10 @@ export default function Dashboard() {
           <div className="space-y-1.5">
             {recentLogs.map(log => (
               <div key={log.id} className="flex items-start gap-3 text-sm py-1.5 border-b border-line/40 last:border-0">
-                <span className={`status-dot ${log.severity === 'error' ? 'offline' : 'online'} mt-1 shrink-0`} />
+                <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
+                  log.severity === 'error' ? 'bg-danger' :
+                  log.severity === 'warn' ? 'bg-warn' : 'bg-accent'
+                }`} />
                 <p className="flex-1 text-xs">{log.message}</p>
                 <span className="text-muted text-[10px] shrink-0">{new Date(log.timestamp).toLocaleTimeString()}</span>
               </div>

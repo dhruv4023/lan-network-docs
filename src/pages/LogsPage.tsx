@@ -12,12 +12,12 @@ const severityConfig: Record<LogSeverity, { color: string; dot: string; label: s
 
 export default function LogsPage() {
   const logs = useStore(s => s.logs)
-  const addLog = useStore(s => s.addLog)
+  const clearLogs = useStore(s => s.clearLogs)
 
   const [filter, setFilter] = useState<LogSeverity | 'all'>('all')
   const [search, setSearch] = useState('')
 
-  const filtered = logs.filter(l => {
+  const filtered = [...logs].reverse().filter(l => {
     if (filter !== 'all' && l.severity !== filter) return false
     if (search && !l.message.toLowerCase().includes(search.toLowerCase())) return false
     return true
@@ -45,7 +45,7 @@ export default function LogsPage() {
           <h1>Event Log</h1>
           <p>{logs.length} event{logs.length !== 1 ? 's' : ''} recorded</p>
         </div>
-        <button onClick={() => addLog('Event log cleared', 'warn')} className="btn btn-ghost text-xs">
+        <button onClick={clearLogs} disabled={logs.length === 0} className="btn btn-ghost text-xs disabled:opacity-40">
           Clear
         </button>
       </div>

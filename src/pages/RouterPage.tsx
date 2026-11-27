@@ -1,27 +1,43 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useStore } from '../store'
-import { isValidIp, calcIp } from '../utils/ip'
+import { isValidIp, isValidSubnetMask, isInSubnet, ipToNum, calcIp } from '../utils/ip'
 
 export default function RouterPage() {
   const router = useStore(s => s.router)
   const devices = useStore(s => s.devices)
   const updateRouter = useStore(s => s.updateRouter)
-  const addLog = useStore(s => s.addLog)
-  const simulateAction = useStore(s => s.simulateAction)
 
   const [form, setForm] = useState({ ...router })
   const [saving, setSaving] = useState(false)
 
-  const ipInfo = useMemo(() => calcIp(form.lanIp, form.subnetMask), [form.lanIp, form.subnetMask])
-  const valid = isValidIp(form.lanIp) && isValidIp(form.subnetMask)
+  useEffect(() => {
+    setForm({ ...router })
+  }, [router])
+
+  const validLan = isValidIp(form.lanIp)
+  const validMask = isValidSubnetMask(form.subnetMask)
+  const validGateway = isValidIp(form.gateway)
+  const validDns = isValidIp(form.dnsServer)
+  const validDhcpRange = !form.dhcpEnabled || (
+    isValidIp(form.dhcpRangeStart) &&
+    isValidIp(form.dhcpRangeEnd) &&
+    ipToNum(form.dhcpRangeStart) <= ipToNum(form.dhcpRangeEnd) &&
+    (!validLan || !validMask || (
+      isInSubnet(form.dhcpRangeStart, form.lanIp, form.subnetMask) &&
+      isInSubnet(form.dhcpRangeEnd, form.lanIp, form.subnetMask)
+    ))
+  )
+
+  const valid = validLan && validMask && validGateway && validDns && validDhcpRange
+  const ipInfo = useMemo(() => (validLan && validMask) ? calcIp(form.lanIp, form.subnetMask) : null, [form.lanIp, form.subnetMask, validLan, validMask])
 
   const onlineDevices = devices.filter(d => d.online).length
 
   function handleSave() {
+    if (!valid) return
     setSaving(true)
     updateRouter(form)
-    addLog('Router configuration updated', 'info')
     setTimeout(() => setSaving(false), 300)
   }
 
@@ -70,8 +86,17 @@ export default function RouterPage() {
                     }
                   }}
                 />
-                {(field.key === 'lanIp' || field.key === 'subnetMask') && (form as any)[field.key] && !isValidIp((form as any)[field.key]) && (
+                {field.key === 'lanIp' && form.lanIp && !validLan && (
                   <p className="text-danger text-xs mt-1">Invalid IP address</p>
+                )}
+                {field.key === 'subnetMask' && form.subnetMask && !validMask && (
+                  <p className="text-danger text-xs mt-1">Invalid subnet mask</p>
+                )}
+                {field.key === 'gateway' && form.gateway && !validGateway && (
+                  <p className="text-danger text-xs mt-1">Invalid gateway IP</p>
+                )}
+                {field.key === 'dnsServer' && form.dnsServer && !validDns && (
+                  <p className="text-danger text-xs mt-1">Invalid DNS IP</p>
                 )}
               </div>
             ))}
@@ -134,10 +159,15 @@ export default function RouterPage() {
             </motion.div>
           )}
 
+          {form.dhcpEnabled && !validDhcpRange && (
+            <p className="text-danger text-xs">DHCP range must use valid IPs within the router subnet, with Start &le; End.</p>
+          )}
+
           <motion.button
             whileTap={{ scale: 0.98 }}
             onClick={handleSave}
-            className="btn btn-primary w-full"
+            disabled={!valid}
+            className="btn btn-primary w-full disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {saving ? 'Saving...' : 'Save Configuration'}
           </motion.button>
@@ -167,7 +197,7 @@ export default function RouterPage() {
               </div>
             </div>
           </motion.div>
-          {valid && (
+          {ipInfo && (
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}

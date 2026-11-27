@@ -1,13 +1,8 @@
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useStore } from '../store'
-import { isValidIp, ipToNum } from '../utils/ip'
+import { isValidIp, isValidMac, generateMac, ipToNum, isInSubnet } from '../utils/ip'
 import { findNextAvailableIp } from '../utils/dhcp'
-import type { DhcpReservation } from '../types'
-
-function uid(): string {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
-}
 
 export default function DhcpPage() {
   const router = useStore(s => s.router)
@@ -28,14 +23,18 @@ export default function DhcpPage() {
 
   function handleReserve() {
     setError('')
-    if (!reserveMac.trim()) { setError('MAC address required'); return }
-    if (!isValidIp(reserveIp)) { setError('Invalid IP address'); return }
-    if (!reserveHost.trim()) { setError('Hostname required'); return }
+    const mac = reserveMac.trim().toLowerCase()
+    const ip = reserveIp.trim()
+    const host = reserveHost.trim()
+    if (!isValidMac(mac)) { setError('Invalid MAC address (expected xx:xx:xx:xx:xx:xx)'); return }
+    if (!isValidIp(ip)) { setError('Invalid IP address'); return }
+    if (!isInSubnet(ip, router.lanIp, router.subnetMask)) { setError('IP must be in the router subnet'); return }
+    if (!host) { setError('Hostname required'); return }
 
-    const existing = reservations.find(r => r.mac === reserveMac || r.ip === reserveIp)
+    const existing = reservations.find(r => r.mac.toLowerCase() === mac || r.ip === ip)
     if (existing) { setError('MAC or IP already reserved'); return }
 
-    addReservation({ mac: reserveMac, ip: reserveIp, hostname: reserveHost })
+    addReservation({ mac, ip, hostname: host })
     setReserveMac('')
     setReserveIp('')
     setReserveHost('')
@@ -48,15 +47,15 @@ export default function DhcpPage() {
       [router.lanIp, router.gateway],
     )
     if (!nextIp) { setError('No available IPs in DHCP pool'); return }
-    const mac = `00:${Math.random().toString(16).slice(2, 8)}:${Math.random().toString(16).slice(2, 8)}`
-    setReserveMac(mac)
+    setReserveMac(generateMac())
     setReserveIp(nextIp)
     setReserveHost(`Reserved-${nextIp.split('.')[3]}`)
   }
 
-  const poolStart = ipToNum(router.dhcpRangeStart)
-  const poolEnd = ipToNum(router.dhcpRangeEnd)
-  const poolSize = poolEnd - poolStart + 1
+  const validPool = isValidIp(router.dhcpRangeStart) && isValidIp(router.dhcpRangeEnd)
+  const poolStart = validPool ? ipToNum(router.dhcpRangeStart) : 0
+  const poolEnd = validPool ? ipToNum(router.dhcpRangeEnd) : -1
+  const poolSize = validPool && poolEnd >= poolStart ? poolEnd - poolStart + 1 : 0
 
   const poolCells = useMemo(() => {
     if (poolSize > 512 || poolSize < 1) return []
@@ -187,9 +186,9 @@ export default function DhcpPage() {
           <div className="grid grid-cols-2 gap-3 text-sm">
             {[
               ['Total Pool', poolSize],
-              ['Used', devices.filter(d => d.ip).length],
-              ['Reserved', reservations.length],
-              ['Free', Math.max(0, poolSize - devices.filter(d => d.ip).length - reservations.length - 2)],
+              ['Used', poolCells.filter(c => c.status === 'used' || c.status === 'conflict').length],
+              ['Reserved', poolCells.filter(c => c.status === 'reserved').length],
+              ['Free', poolCells.filter(c => c.status === 'free').length],
             ].map(([l, v]) => (
               <div key={l as string} className="bg-panel-2/40 border border-line/40 rounded-lg p-3">
                 <p className="text-muted text-[10px] uppercase tracking-wider">{l as string}</p>

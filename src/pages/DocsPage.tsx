@@ -743,6 +743,7 @@ function renderPoint(pt: Point): ReactNode {
 
 export default function DocsPage() {
 	const [copyState, setCopyState] = useState<{ cmd: string; ok: boolean } | null>(null)
+	const [query, setQuery] = useState('')
 	const timer = useRef<number | undefined>(undefined)
 	const reduceMotion = useReducedMotion()
 
@@ -768,6 +769,18 @@ export default function DocsPage() {
 			: 'Copy failed. Select the command and press Ctrl+C.'
 		: ''
 
+	const normalizedQuery = query.trim().toLowerCase()
+	const visibleSections = normalizedQuery
+		? SECTIONS.filter(s => {
+			if (s.title.toLowerCase().includes(normalizedQuery)) return true
+			if (s.body?.toLowerCase().includes(normalizedQuery)) return true
+			if (s.note?.toLowerCase().includes(normalizedQuery)) return true
+			if (s.points?.some(p => (typeof p === 'string' ? p : `${p.label} ${p.text}`).toLowerCase().includes(normalizedQuery))) return true
+			if (s.commands?.some(c => c.title.toLowerCase().includes(normalizedQuery) || c.command.toLowerCase().includes(normalizedQuery))) return true
+			return false
+		})
+		: SECTIONS
+
 	return (
 		<div className="space-y-6">
 			<div className="page-header">
@@ -792,7 +805,17 @@ export default function DocsPage() {
 			</p>
 
 			<nav aria-label="Contents" className="glass rounded-xl p-5">
-				<h2 className="text-base font-semibold mb-2 mt-0">Contents</h2>
+				<div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+					<h2 className="text-base font-semibold m-0">Contents</h2>
+					<input
+						type="text"
+						value={query}
+						onChange={e => setQuery(e.target.value)}
+						placeholder="Filter topics (e.g. DHCP, subnet, SSH)..."
+						className="input-field !w-64 !text-xs"
+						aria-label="Filter documentation topics"
+					/>
+				</div>
 				<ol className="text-sm list-none p-0 m-0 gap-x-6 sm:columns-2 space-y-1">
 					{SECTIONS.map((s, i) => (
 						<li key={s.id}>
@@ -805,7 +828,11 @@ export default function DocsPage() {
 			</nav>
 
 			<div className="space-y-5">
-				{SECTIONS.map((s, i) => (
+				{visibleSections.length === 0 ? (
+					<div className="glass rounded-xl p-8 text-center text-sm text-muted">
+						No documentation sections match &ldquo;{query}&rdquo;.
+					</div>
+				) : visibleSections.map((s, i) => (
 					<motion.section
 						key={s.id}
 						id={s.id}

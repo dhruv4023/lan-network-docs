@@ -1,41 +1,38 @@
 import { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { isValidIp, calcIp, maskToCidr } from '../utils/ip'
-import type { IpCalcResult } from '../types'
+import { isValidIp, isValidSubnetMask, calcIp, maskToCidr, cidrToMask, ipToNum, numToIp } from '../utils/ip'
 
 const PRESETS = [
   { ip: '192.168.1.1', mask: '255.255.255.0', label: '/24 (Class C)' },
   { ip: '10.0.0.1', mask: '255.0.0.0', label: '/8 (Class A)' },
   { ip: '172.16.0.1', mask: '255.255.0.0', label: '/16 (Class B)' },
-  { ip: '192.168.1.1', mask: '255.255.255.192', label: '/26 (64 hosts)' },
-  { ip: '192.168.1.1', mask: '255.255.255.240', label: '/28 (16 hosts)' },
-  { ip: '192.168.1.1', mask: '255.255.255.248', label: '/29 (8 hosts)' },
+  { ip: '192.168.1.1', mask: '255.255.255.192', label: '/26 (62 hosts)' },
+  { ip: '192.168.1.1', mask: '255.255.255.240', label: '/28 (14 hosts)' },
+  { ip: '192.168.1.1', mask: '255.255.255.248', label: '/29 (6 hosts)' },
 ]
 
-function OctetBitRow({ label, bits, highlight }: { label: string; bits: string; highlight?: 'network' | 'host' }) {
-  const parts = bits.split('.')
-  return (
-    <div className="flex items-center gap-2 text-xs">
-      <span className="text-muted w-16 shrink-0 text-[10px]">{label}</span>
-      {parts.map((oct, i) => (
-        <span key={i} className="font-mono tracking-wider">{oct}</span>
-      ))}
-      <span className="text-muted text-[9px] ml-1">/{maskToCidr(
-        ['11111111', '11111111', '11111111', '00000000'].join('.')
-      )}</span>
-    </div>
-  )
+function getIpScope(ip: string): string {
+  const [a, b] = ip.split('.').map(Number)
+  if (a === 10) return 'Private (RFC 1918 · Class A)'
+  if (a === 172 && b >= 16 && b <= 31) return 'Private (RFC 1918 · Class B)'
+  if (a === 192 && b === 168) return 'Private (RFC 1918 · Class C)'
+  if (a === 127) return 'Loopback'
+  if (a === 169 && b === 254) return 'Link-Local (APIPA)'
+  return 'Public IP'
 }
 
 export default function IpCalcPage() {
   const [ip, setIp] = useState('192.168.1.1')
   const [mask, setMask] = useState('255.255.255.0')
 
-  const valid = isValidIp(ip) && isValidIp(mask)
+  const validIp = isValidIp(ip)
+  const validMask = isValidSubnetMask(mask)
+  const valid = validIp && validMask
   const result = useMemo(() => valid ? calcIp(ip, mask) : null, [ip, mask, valid])
 
   const cidr = valid ? maskToCidr(mask) : 0
   const isClassful = [8, 16, 24].includes(cidr)
+  const wildcardMask = valid ? numToIp((~ipToNum(mask)) >>> 0) : ''
 
   return (
     <div className="space-y-6">
@@ -66,10 +63,26 @@ export default function IpCalcPage() {
                   autoComplete="off"
                   spellCheck={false}
                 />
-                {ip && !isValidIp(ip) && <p className="text-danger text-xs mt-1">Invalid IP address</p>}
+                {ip && !validIp && <p className="text-danger text-xs mt-1">Invalid IP address</p>}
               </div>
               <div>
-                <label className="block text-muted text-xs mb-1.5">Subnet Mask</label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-muted text-xs">Subnet Mask</label>
+                  <select
+                    aria-label="CIDR prefix"
+                    className="bg-panel-2 border border-line/60 rounded-md px-2 py-0.5 text-xs text-accent font-mono cursor-pointer"
+                    value={validMask ? cidr : ''}
+                    onChange={e => {
+                      const c = Number(e.target.value)
+                      if (!Number.isNaN(c)) setMask(cidrToMask(c))
+                    }}
+                  >
+                    {!validMask && <option value="">Custom</option>}
+                    {Array.from({ length: 25 }, (_, i) => i + 8).map(c => (
+                      <option key={c} value={c}>/{c}</option>
+                    ))}
+                  </select>
+                </div>
                 <input
                   type="text"
                   className="input-field"
@@ -79,21 +92,16 @@ export default function IpCalcPage() {
                   autoComplete="off"
                   spellCheck={false}
                 />
-                {mask && !isValidIp(mask) && <p className="text-danger text-xs mt-1">Invalid subnet mask</p>}
-                {mask && isValidIp(mask) && (() => {
-                  const octets = mask.split('.').map(Number)
-                  const invalid = octets.some((o, i) => i < 3 && octets[i + 1] !== 0 && o !== 255)
-                  if (invalid) return <p className="text-warn text-xs mt-1">Non-standard subnet mask</p>
-                  return null
-                })()}
+                {mask && !validMask && <p className="text-danger text-xs mt-1">Invalid subnet mask (bits must be contiguous)</p>}
               </div>
               {valid && (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="text-muted text-xs">CIDR:</span>
                   <code className="text-sm font-bold text-accent">/{cidr}</code>
                   {!isClassful && (
                     <span className="badge badge-warn text-[10px]">Subnetted</span>
                   )}
+                  <span className="badge badge-muted text-[10px]">{getIpScope(ip)}</span>
                 </div>
               )}
             </div>
@@ -134,6 +142,7 @@ export default function IpCalcPage() {
                   {[
                     ['Network Address', result.networkAddress, 'text-accent'],
                     ['Broadcast Address', result.broadcastAddress, 'text-danger'],
+                    ['Wildcard Mask', wildcardMask, 'text-muted'],
                     ['First Usable Host', result.firstHost, 'text-accent'],
                     ['Last Usable Host', result.lastHost, 'text-warn'],
                     ['Total Hosts', result.totalHosts.toLocaleString(), 'text-fg'],
@@ -155,29 +164,28 @@ export default function IpCalcPage() {
                     ['Mask', result.binarySubnet],
                     ['Network', result.binaryNetwork],
                     ['Broadcast', result.binaryBroadcast],
-                  ].map(([l, v]) => {
-                    const parts = (v as string).split('.')
-                    const bitsPerOctet = parts.map(o => o.split('').filter(b => b === '1').length)
-                    return (
-                      <div key={l as string}>
-                        <span className="text-muted text-[10px] block mb-0.5">{l as string}</span>
-                        <div className="flex gap-1.5">
-                          {(v as string).split('.').map((oct, i) => (
+                  ].map(([l, v]) => (
+                    <div key={l as string}>
+                      <span className="text-muted text-[10px] block mb-0.5">{l as string}</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(v as string).split('.').map((oct, i) => {
+                          const netBitsInOctet = Math.max(0, Math.min(8, cidr - i * 8))
+                          return (
                             <span
                               key={i}
                               className="font-mono text-xs bg-bg-soft/60 px-2 py-1 rounded border border-line/40 block"
                             >
-                              <span className="text-accent">{oct.slice(0, bitsPerOctet[i])}</span>
-                              <span className="text-muted/50">{oct.slice(bitsPerOctet[i])}</span>
+                              <span className="text-accent">{oct.slice(0, netBitsInOctet)}</span>
+                              <span className="text-muted/50">{oct.slice(netBitsInOctet)}</span>
                             </span>
-                          ))}
-                        </div>
+                          )
+                        })}
                       </div>
-                    )
-                  })}
+                    </div>
+                  ))}
                 </div>
                 <p className="text-muted text-[10px] mt-3">
-                  <span className="text-accent">Green</span> = network bits &middot; <span className="text-muted/50">Gray</span> = host bits
+                  <span className="text-accent">Green</span> = network bits (/{cidr}) &middot; <span className="text-muted/50">Gray</span> = host bits ({32 - cidr})
                 </p>
               </div>
 
@@ -210,7 +218,7 @@ export default function IpCalcPage() {
               animate={{ opacity: 1 }}
               className="panel flex items-center justify-center h-48"
             >
-              <p className="text-muted text-sm">Enter valid IP and subnet mask to see results</p>
+              <p className="text-muted text-sm">Enter a valid IP and subnet mask to see results</p>
             </motion.div>
           )}
         </div>

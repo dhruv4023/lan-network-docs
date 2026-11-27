@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useStore } from '../store'
-import { isValidIp, generateMac } from '../utils/ip'
+import { isValidIp, isValidMac, generateMac, isInSubnet, networkAddress, broadcastAddress } from '../utils/ip'
 import type { Device, DeviceType, ConnectionType } from '../types'
 
 const DEVICE_TYPES: { value: DeviceType; label: string; desc: string }[] = [
@@ -26,11 +26,12 @@ function uid(): string {
 
 function DeviceCard({ d, onEdit, onRemove, onToggle }: { d: Device; onEdit: () => void; onRemove: () => void; onToggle: () => void }) {
   const devices = useStore(s => s.devices)
+  const router = useStore(s => s.router)
   const reservations = useStore(s => s.reservations)
   const addReservation = useStore(s => s.addReservation)
-  const assignNextIp = useStore(s => s.assignNextIp)
-  const conflict = devices.some(x => x.id !== d.id && x.ip === d.ip)
-  const hasReservation = reservations.some(r => r.mac === d.mac)
+  const conflict = Boolean(d.ip) && devices.some(x => x.id !== d.id && x.ip === d.ip)
+  const outOfSubnet = Boolean(d.ip) && isValidIp(d.ip) && !isInSubnet(d.ip, router.lanIp, router.subnetMask)
+  const hasReservation = reservations.some(r => r.mac.toLowerCase() === d.mac.toLowerCase())
 
   return (
     <motion.div
@@ -48,9 +49,10 @@ function DeviceCard({ d, onEdit, onRemove, onToggle }: { d: Device; onEdit: () =
           </svg>
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <p className="font-semibold text-sm truncate">{d.name}</p>
             {conflict && <span className="badge badge-danger text-[10px] px-1.5 py-0">IP Conflict</span>}
+            {outOfSubnet && <span className="badge badge-warn text-[10px] px-1.5 py-0">Out of Subnet</span>}
           </div>
           <p className="text-muted text-[11px] capitalize">{d.type.replace('-', ' ')}</p>
           <div className="flex items-center gap-2 mt-1.5">
@@ -92,13 +94,13 @@ export default function DevicesPage() {
   const updateDevice = useStore(s => s.updateDevice)
   const toggleDeviceStatus = useStore(s => s.toggleDeviceStatus)
   const router = useStore(s => s.router)
-  const assignNextIp = useStore(s => s.assignNextIp)
-  const assignDhcpIpAndUpdate = useStore(s => s.assignDhcpIpAndUpdate)
+  const assignDhcpIp = useStore(s => s.assignDhcpIp)
   const addLog = useStore(s => s.addLog)
 
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<string | null>(null)
   const [filter, setFilter] = useState<string>('all')
+  const [search, setSearch] = useState('')
 
   const [form, setForm] = useState<Partial<Device>>({
     name: '', type: 'printer', mac: generateMac(),
@@ -108,7 +110,16 @@ export default function DevicesPage() {
 
   const [errors, setErrors] = useState<string[]>([])
 
-  const filtered = filter === 'all' ? devices : devices.filter(d => d.type === filter)
+  const filtered = devices.filter(d => {
+    if (filter !== 'all' && d.type !== filter) return false
+    if (search.trim()) {
+      const q = search.trim().toLowerCase()
+      if (!d.name.toLowerCase().includes(q) && !d.ip.toLowerCase().includes(q) && !d.mac.toLowerCase().includes(q)) {
+        return false
+      }
+    }
+    return true
+  })
 
   function resetForm() {
     setForm({
@@ -130,14 +141,20 @@ export default function DevicesPage() {
   function validate(): boolean {
     const errs: string[] = []
     if (!form.name?.trim()) errs.push('Device name is required')
-    if (form.ipMode === 'static') {
+    if (!form.mac || !isValidMac(form.mac)) errs.push('Invalid MAC address (expected xx:xx:xx:xx:xx:xx)')
+    if (form.ipMode === 'dhcp') {
+      if (!router.dhcpEnabled && !form.ip) errs.push('DHCP is disabled in Router Configuration')
+    } else if (form.ipMode === 'static') {
       if (!form.ip || !isValidIp(form.ip)) errs.push('Invalid static IP')
       else {
         const dup = devices.find(d => d.id !== editing && d.ip === form.ip)
         if (dup) errs.push(`IP ${form.ip} used by ${dup.name}`)
         if (form.ip === router.lanIp) errs.push('Cannot use router LAN IP')
         if (form.ip === router.gateway) errs.push('Cannot use gateway IP')
-        if (form.ip === '255.255.255.255') errs.push('Cannot use broadcast address')
+        if (form.ip === networkAddress(router.lanIp, router.subnetMask)) errs.push('Cannot use network address')
+        if (form.ip === broadcastAddress(router.lanIp, router.subnetMask) || form.ip === '255.255.255.255') {
+          errs.push('Cannot use broadcast address')
+        }
       }
     }
     if (form.gateway && !isValidIp(form.gateway)) errs.push('Invalid gateway')
@@ -149,8 +166,13 @@ export default function DevicesPage() {
   function handleSave() {
     if (!validate()) return
     const ip = form.ipMode === 'dhcp'
-      ? form.ip || assignDhcpIpAndUpdate(editing || 'new') || ''
+      ? form.ip || assignDhcpIp(editing || 'new') || ''
       : form.ip || ''
+
+    if (form.ipMode === 'dhcp' && !ip) {
+      setErrors(['No available IPs in DHCP pool'])
+      return
+    }
 
     const device: Device = {
       id: editing || uid(),
@@ -186,7 +208,14 @@ export default function DevicesPage() {
           <h1>Devices</h1>
           <p>{devices.length} device{devices.length !== 1 ? 's' : ''} on network</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <input
+            type="text"
+            placeholder="Search name, IP, MAC..."
+            className="input-field !w-48 !text-xs"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
           <div className="tabs mb-0 border-b-0">
             {FILTERS.map(f => (
               <button
@@ -293,7 +322,7 @@ export default function DevicesPage() {
                       onChange={e => {
                         const mode = e.target.value as 'dhcp' | 'static'
                         if (mode === 'dhcp') {
-                          const ip = assignDhcpIpAndUpdate(editing || 'new') || ''
+                          const ip = assignDhcpIp(editing || 'new') || ''
                           setForm(f => ({ ...f, ipMode: mode, ip }))
                         } else {
                           setForm(f => ({ ...f, ipMode: mode }))
