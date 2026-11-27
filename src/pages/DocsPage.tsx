@@ -704,13 +704,13 @@ function DataTable({
 	columnClass = [],
 }: TableData & { columnClass?: string[] }) {
 	return (
-		<div className="mt-3 overflow-x-auto">
+		<div className="mt-4 overflow-x-auto rounded-xl border border-line/50 bg-panel-2/30">
 			<table className="w-full text-xs border-collapse">
 				<caption className="sr-only">{caption}</caption>
 				<thead>
-					<tr className="text-muted border-b border-line/60">
+					<tr className="text-muted bg-panel-2/70 border-b border-line/60">
 						{headers.map((h) => (
-							<th key={h} scope="col" className="text-left py-2 pr-4 font-medium">
+							<th key={h} scope="col" className="text-left py-2.5 px-3.5 font-semibold uppercase tracking-wider text-[10px]">
 								{h}
 							</th>
 						))}
@@ -718,9 +718,9 @@ function DataTable({
 				</thead>
 				<tbody>
 					{rows.map((row, j) => (
-						<tr key={j} className="border-b border-line/30 hover:bg-panel-2/40">
+						<tr key={j} className="border-b border-line/30 last:border-0 hover:bg-panel-2/50 transition-colors">
 							{row.map((cell, k) => (
-								<td key={k} className={`py-2 pr-4 align-top ${columnClass[k] ?? 'text-fg/80'}`}>
+								<td key={k} className={`py-2.5 px-3.5 align-top leading-relaxed ${columnClass[k] ?? 'text-fg/85'}`}>
 									{cell}
 								</td>
 							))}
@@ -783,44 +783,66 @@ export default function DocsPage() {
 
 	return (
 		<div className="space-y-6">
-			<div className="page-header">
-				<div>
-					<h1>LAN Printer Setup Guide</h1>
-					<p>Networking basics for setting up and troubleshooting devices on a local network</p>
+			<div className="glass relative overflow-hidden p-6 sm:p-7">
+				<div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-accent via-accent/60 to-transparent" />
+				<div className="flex flex-wrap items-start justify-between gap-4">
+					<div className="space-y-2 max-w-2xl">
+						<div className="flex flex-wrap items-center gap-2">
+							<span className="badge badge-accent text-[11px]">Interactive Guide</span>
+							<span className="badge badge-muted text-[11px]">{SECTIONS.length} Topics</span>
+							<span className="text-muted text-xs">Updated {LAST_UPDATED}</span>
+						</div>
+						<h1 className="text-2xl sm:text-3xl font-bold tracking-tight m-0 text-fg">
+							LAN Networking &amp; Setup Guide
+						</h1>
+						<p className="text-muted text-sm leading-relaxed m-0">
+							Practical networking basics for setting up and troubleshooting devices on a local network—from IP addresses, subnets, and DHCP to LAN printers, Python file sharing, and SSH.
+						</p>
+					</div>
 				</div>
 			</div>
-
-			<p className="text-muted text-sm leading-relaxed max-w-prose">
-				This guide explains the networking basics you need to set up and troubleshoot
-				devices on a local network, with a focus on network printers. It covers common
-				networking terms, how to read and change basic network settings, how to set up
-				a LAN printer, and how to fix simple connectivity problems. It is not a deep
-				networking course. Commands are shown for Windows, macOS, and Linux where they
-				differ; the Python file-sharing and SSH sections are Linux-focused.
-			</p>
-			<p className="text-muted text-xs">Last updated: {LAST_UPDATED}</p>
 
 			<p role="status" aria-live="polite" className="sr-only">
 				{liveMessage}
 			</p>
 
-			<nav aria-label="Contents" className="glass rounded-xl p-5">
-				<div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-					<h2 className="text-base font-semibold m-0">Contents</h2>
-					<input
-						type="text"
-						value={query}
-						onChange={e => setQuery(e.target.value)}
-						placeholder="Filter topics (e.g. DHCP, subnet, SSH)..."
-						className="input-field !w-64 !text-xs"
-						aria-label="Filter documentation topics"
-					/>
+			<nav aria-label="Contents" className="glass p-5">
+				<div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+					<div>
+						<h2 className="text-base font-semibold m-0">Quick Jump</h2>
+						<p className="text-xs text-muted m-0">Jump to a topic or filter sections below</p>
+					</div>
+					<div className="flex items-center gap-2">
+						<input
+							type="text"
+							value={query}
+							onChange={e => setQuery(e.target.value)}
+							placeholder="Filter topics (e.g. DHCP, subnet, SSH)..."
+							className="input-field !w-64 !text-xs"
+							aria-label="Filter documentation topics"
+						/>
+						{query && (
+							<button
+								type="button"
+								onClick={() => setQuery('')}
+								className="btn btn-ghost !px-2.5 !py-2 text-xs"
+							>
+								Clear
+							</button>
+						)}
+					</div>
 				</div>
-				<ol className="text-sm list-none p-0 m-0 gap-x-6 sm:columns-2 space-y-1">
+				<ol className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 list-none p-0 m-0">
 					{SECTIONS.map((s, i) => (
 						<li key={s.id}>
-							<a href={`#${s.id}`} className="text-fg/80 hover:text-accent">
-								{i + 1}. {s.title}
+							<a
+								href={`#${s.id}`}
+								className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-panel-2/40 border border-line/40 text-xs text-fg/85 hover:border-accent/60 hover:bg-accent-dim/30 hover:text-accent transition-all no-underline group"
+							>
+								<span className="w-5 h-5 rounded-md bg-accent-dim/80 text-accent font-mono text-[10px] font-bold flex items-center justify-center shrink-0">
+									{String(i + 1).padStart(2, '0')}
+								</span>
+								<span className="truncate font-medium">{s.title}</span>
 							</a>
 						</li>
 					))}
@@ -829,28 +851,38 @@ export default function DocsPage() {
 
 			<div className="space-y-5">
 				{visibleSections.length === 0 ? (
-					<div className="glass rounded-xl p-8 text-center text-sm text-muted">
+					<div className="glass p-8 text-center text-sm text-muted">
 						No documentation sections match &ldquo;{query}&rdquo;.
 					</div>
-				) : visibleSections.map((s, i) => (
+				) : visibleSections.map((s, i) => {
+					const sectionNum = SECTIONS.findIndex(item => item.id === s.id) + 1
+					return (
 					<motion.section
 						key={s.id}
 						id={s.id}
 						aria-labelledby={`${s.id}-title`}
 						initial={reduceMotion ? false : { opacity: 0, y: 8 }}
 						animate={{ opacity: 1, y: 0 }}
-						transition={{ delay: reduceMotion ? 0 : i * 0.03 }}
-						className="glass rounded-xl p-5 scroll-mt-6"
+						transition={{ delay: reduceMotion ? 0 : i * 0.02 }}
+						className="glass p-6 scroll-mt-6"
 					>
-						<h2 id={`${s.id}-title`} className="text-base font-semibold mb-2 mt-0">
-							{i + 1}. {s.title}
-						</h2>
-						{s.body && <p className="text-sm text-fg/90 mb-2">{s.body}</p>}
+						<div className="flex items-center gap-3 pb-3 mb-3 border-b border-line/40">
+							<span className="w-7 h-7 rounded-lg bg-accent-dim text-accent font-mono text-xs font-bold flex items-center justify-center shrink-0">
+								{String(sectionNum).padStart(2, '0')}
+							</span>
+							<h2 id={`${s.id}-title`} className="text-lg font-bold tracking-tight m-0 text-fg">
+								{s.title}
+							</h2>
+						</div>
+						{s.body && <p className="text-sm text-fg/90 leading-relaxed mb-3">{s.body}</p>}
 
 						{s.points && s.points.length > 0 && (
-							<ul className="space-y-1 text-sm text-fg/80 list-disc pl-5 marker:text-accent">
+							<ul className="space-y-2 text-sm text-fg/85 list-none p-0 m-0">
 								{s.points.map((pt, j) => (
-									<li key={j}>{renderPoint(pt)}</li>
+									<li key={j} className="flex items-start gap-2.5 leading-relaxed">
+										<span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 shrink-0" />
+										<span>{renderPoint(pt)}</span>
+									</li>
 								))}
 							</ul>
 						)}
@@ -929,13 +961,15 @@ export default function DocsPage() {
 						)}
 
 						{s.examples?.map((ex) => (
-							<div key={ex.label} className="mt-3 bg-panel-2/60 rounded-xl p-4 border border-line/40">
-								<p className="text-xs text-muted mb-2">{ex.label}</p>
-								<div className="space-y-1">
+							<div key={ex.label} className="mt-4 rounded-xl border border-line/50 bg-panel-2/40 overflow-hidden">
+								<div className="px-4 py-2 bg-panel-2/80 border-b border-line/40">
+									<p className="text-[11px] font-semibold uppercase tracking-wider text-muted m-0">{ex.label}</p>
+								</div>
+								<div className="p-3.5 space-y-1.5">
 									{ex.rows.map(([l, v]) => (
-										<div key={l} className="flex flex-wrap justify-between gap-x-4 text-sm font-mono">
+										<div key={l} className="flex flex-wrap justify-between gap-x-4 text-xs font-mono py-0.5">
 											<span className="text-muted">{l}</span>
-											<code className="text-fg">{v}</code>
+											<code className="text-accent font-semibold">{v}</code>
 										</div>
 									))}
 								</div>
@@ -945,8 +979,8 @@ export default function DocsPage() {
 						{s.table && <DataTable {...s.table} />}
 
 						{s.issueGroups?.map((g) => (
-							<div key={g.group} className="mt-4">
-								<h3 className="text-sm font-semibold mb-1 mt-0">{g.group}</h3>
+							<div key={g.group} className="mt-5">
+								<h3 className="text-sm font-semibold mb-1 mt-0 text-fg">{g.group}</h3>
 								<DataTable
 									caption={`${g.group}: problems, symptoms, and solutions`}
 									headers={['Problem', 'Symptom', 'Solution']}
@@ -957,12 +991,16 @@ export default function DocsPage() {
 						))}
 
 						{s.note && (
-							<div className="mt-3 bg-accent-dim/40 border border-accent/20 rounded-xl p-3 text-xs text-accent">
-								{s.note}
+							<div className="mt-4 flex items-start gap-2.5 bg-accent-dim/40 border border-accent/25 border-l-4 border-l-accent rounded-xl p-3.5 text-xs text-fg/90 leading-relaxed">
+								<svg className="w-4 h-4 text-accent shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+									<path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+								</svg>
+								<span>{s.note}</span>
 							</div>
 						)}
 					</motion.section>
-				))}
+					)
+				})}
 			</div>
 		</div>
 	)

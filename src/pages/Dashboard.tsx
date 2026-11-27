@@ -50,7 +50,13 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div className="page-header">
         <div>
-          <h1>Dashboard</h1>
+          <div className="flex items-center gap-2.5">
+            <h1>Dashboard</h1>
+            <span className={`badge text-[11px] ${duplicateCount > 0 || outOfSubnetCount > 0 ? 'badge-warn' : 'badge-accent'}`}>
+              <span className={`status-dot ${duplicateCount > 0 || outOfSubnetCount > 0 ? 'offline' : 'online'}`} />
+              {duplicateCount > 0 || outOfSubnetCount > 0 ? 'Needs Attention' : 'Healthy LAN'}
+            </span>
+          </div>
           <p>Network configuration overview</p>
         </div>
         <button onClick={resetNetwork} className="btn btn-ghost text-xs">

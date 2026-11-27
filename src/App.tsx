@@ -37,7 +37,7 @@ export default function App() {
   const PageComponent = pageConfig.component
 
   return (
-    <div className="app grid min-h-screen" style={{ gridTemplateColumns: '268px 1fr' }}>
+    <div className="app grid min-h-screen grid-cols-[268px_1fr] max-[980px]:grid-cols-1">
       <Sidebar />
       <button
         className="sidebar-toggle fixed top-3 left-3 z-30 glass w-[38px] h-[38px] text-fg flex items-center justify-center cursor-pointer hidden max-[980px]:flex"

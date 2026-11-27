@@ -118,7 +118,7 @@ export default function DhcpPage() {
             <div className="flex items-center gap-3 text-[10px] text-muted">
               <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-panel-2/60 border border-line/30 inline-block" /> Free</span>
               <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-accent-dim/60 border border-accent/30 inline-block" /> Used</span>
-              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-[#2a1f5e]/60 border border-[#9f8aff]/30 inline-block" /> Reserved</span>
+              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-warn-dim/70 border border-warn/40 inline-block" /> Reserved</span>
               <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-danger-dim/60 border border-danger/30 inline-block" /> Conflict</span>
             </div>
           </div>
